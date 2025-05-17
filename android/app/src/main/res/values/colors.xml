@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- الألوان الأخرى -->
+    <color name="notification_color">#4CAF50</color> <!-- يمكنك تغيير اللون حسب تصميم تطبيقك -->
+</resources>

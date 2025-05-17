@@ -1,0 +1,36 @@
+# معالجة ملفات Flutter الأساسية
+*.dart text
+pubspec.yaml text
+*.md text
+*.txt text
+*.yaml text
+*.yml text
+
+# استثناء الملفات الثنائية والتهيئات الحساسة
+*.json binary
+*.gradle binary
+*.kts binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.keystore binary
+*.pfx binary
+*.p12 binary
+*.cer binary
+*.der binary
+*.bin binary
+*.class binary
+
+# ملفات Firebase و Node.js
+.firebaserc binary
+google-services.json binary
+GoogleService-Info.plist binary
+/project/ios/Runner/GoogleService-Info.plist binary
+/project/android/app/google-services.json binary
+fcm-server/node_modules/** binary
+package-lock.json binary
+yarn.lock binary
+
+# إعدادات Git العامة
+* text=auto
