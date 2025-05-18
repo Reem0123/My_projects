@@ -1214,7 +1214,6 @@ class NewBookNotificationCard extends StatelessWidget {
     final bookData = data['bookData'] as Map<String, dynamic>?;
 
     final bookTitle = bookData?['title'] ?? 'كتاب جديد';
-    final bookAuthor = bookData?['author'] ?? 'مؤلف غير معروف';
     final bookCover = bookData?['coverImage'] ?? '';
     final categories = bookData?['categories'] != null
         ? List<String>.from(bookData!['categories'])
@@ -1349,25 +1348,7 @@ class NewBookNotificationCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.person_outline,
-                          color: Color(0xFF6C63FF),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'المؤلف: $bookAuthor',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF4A4E69),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
+                  
                     
                     if (categories.isNotEmpty)
                       Row(
