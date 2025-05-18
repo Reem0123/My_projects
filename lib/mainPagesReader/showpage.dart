@@ -863,7 +863,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       
       final DateTime requestDate = DateTime.now();
       final DateTime returnDate = requestDate.add(Duration(days: 15));
-      final DateTime expiryDate = requestDate.add(Duration(minutes: 2));
+      final DateTime expiryDate = requestDate.add(Duration(hours: 24));
       
       Map<String, dynamic> requestData = {
         'userId': userId,

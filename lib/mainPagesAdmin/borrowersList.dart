@@ -132,7 +132,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
         transaction.update(doc.reference, {
           'status': 'active',
           'activationDate': FieldValue.serverTimestamp(),
-          'returnDate': DateTime.now().add(Duration(days: 14)),
+          'returnDate': DateTime.now().add(Duration(days: 15)),
         });
       });
 
