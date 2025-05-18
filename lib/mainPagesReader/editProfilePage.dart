@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,6 +23,7 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
   File? _selectedImage;
   String? _currentImageUrl;
   Map<String, dynamic> userData = {};
+  Timer? _snackBarTimer;
 
   late Animation<Offset> _animation;
   late AnimationController _animationController;
@@ -43,6 +45,8 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
 
   @override
   void dispose() {
+    _snackBarTimer?.cancel();
+    _overlayEntry?.remove();
     _firstnameController.dispose();
     _lastnameController.dispose();
     _emailController.dispose();
@@ -70,7 +74,8 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
     
     _animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 500));
     _animation = Tween<Offset>(begin: Offset(0, -1), end: Offset(0, 0)).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),);
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
       
     _loadUserData();
   }
@@ -138,7 +143,9 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
 
   void showTopSnackBar(String message) {
     if (isShowing) {
-      _animationController.forward(from: 0);
+      if (mounted) {
+        _animationController.forward(from: 0);
+      }
       return;
     }
 
@@ -147,11 +154,17 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
     Overlay.of(context).insert(_overlayEntry!);
     _animationController.forward();
 
-    Future.delayed(Duration(seconds: 2), () {
-      _animationController.reverse().then((_) {
+    _snackBarTimer?.cancel();
+    _snackBarTimer = Timer(Duration(seconds: 2), () {
+      if (mounted) {
+        _animationController.reverse().then((_) {
+          _overlayEntry?.remove();
+          isShowing = false;
+        });
+      } else {
         _overlayEntry?.remove();
         isShowing = false;
-      });
+      }
     });
   }
 
@@ -250,14 +263,12 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
         isLoading = false;
       });
       
-      showTopSnackBar("تم تحديث المعلومات الشخصية بنجاح");
       
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (error) {
       setState(() {
         isLoading = false;
       });
-      showTopSnackBar("حدث خطأ أثناء تحديث المعلومات الشخصية: ${error.toString()}");
       print('Error updating profile: ${error.toString()}');
     }
   }
@@ -301,164 +312,163 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
         iconTheme: IconThemeData(color: Color(0xFF139799)),
       ),
       body: isLoading 
-      ? Center(child: CircularProgressIndicator(color: Color(0xFF139799)))
-      : SingleChildScrollView(
-        child: Directionality(
-          textDirection: TextDirection.rtl,
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      _showImageSourceOptions();
-                    },
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: _selectedImage != null
-                          ? ClipOval(
-                              child: Image.file(
-                                _selectedImage!,
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : (_currentImageUrl != null && _currentImageUrl!.isNotEmpty)
-                              ? ClipOval(
-                                  child: CachedNetworkImage(
-                                    imageUrl: _currentImageUrl!,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Center(
-                                      child: CircularProgressIndicator(
+          ? Center(child: CircularProgressIndicator(color: Color(0xFF139799)))
+          : SingleChildScrollView(
+              child: Directionality(
+                textDirection: TextDirection.rtl,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            _showImageSourceOptions();
+                          },
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),)
+                              ],
+                            ),
+                            child: _selectedImage != null
+                                ? ClipOval(
+                                    child: Image.file(
+                                      _selectedImage!,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : (_currentImageUrl != null && _currentImageUrl!.isNotEmpty)
+                                    ? ClipOval(
+                                        child: CachedNetworkImage(
+                                          imageUrl: _currentImageUrl!,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) => Center(
+                                            child: CircularProgressIndicator(
+                                              color: Color(0xFF139799),
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                          errorWidget: (context, url, error) => Center(
+                                            child: Icon(Icons.person, color: Color(0xFF139799), size: 60),
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.person,
+                                        size: 60,
                                         color: Color(0xFF139799),
-                                        strokeWidth: 2,
                                       ),
-                                    ),
-                                    errorWidget: (context, url, error) => Center(
-                                      child: Icon(Icons.person, color: Color(0xFF139799), size: 60),
-                                    ),
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.person,
-                                  size: 60,
-                                  color: Color(0xFF139799),
-                                ),
-                    ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Center(
+                        child: Text("تغيير الصورة الشخصية", 
+                          style: TextStyle(fontFamily: 'Zain', color: Colors.grey[700])),
+                      ),
+                      SizedBox(height: 25),
+                      
+                      CustomTextForm(hinttext: "الاسم", myController: _firstnameController, icon: Icons.person),
+                      SizedBox(height: 20),
+                      CustomTextForm(hinttext: "اللقب", myController: _lastnameController, icon: Icons.person),
+                      SizedBox(height: 20),
+                      CustomTextForm(hinttext: "البريد الالكتروني", myController: _emailController, icon: Icons.email),
+                      SizedBox(height: 20),
+                      CustomTextForm(hinttext: "رقم الهاتف", myController: _phoneController, icon: Icons.phone),
+                      SizedBox(height: 20),
+                      CustomTextForm(
+                        hinttext: "تاريخ الميلاد",
+                        myController: _birthDateController,
+                        icon: Icons.calendar_today,
+                        isDatePicker: true,
+                      ),
+                      SizedBox(height: 20),
+                      CustomTextForm(
+                        hinttext: "ولاية الميلاد",
+                        myController: _birthPlaceController,
+                        icon: Icons.location_on,
+                      ),
+                      SizedBox(height: 20),
+                      CustomTextForm(
+                        hinttext: "ولاية السكن",
+                        myController: _residenceStateController,
+                        icon: Icons.location_city,
+                      ),
+                      SizedBox(height: 20),
+                      CustomTextForm(
+                        hinttext: "بلدية السكن",
+                        myController: _residenceCityController,
+                        icon: Icons.home,
+                      ),
+                      SizedBox(height: 30),
+                     
+                      ElevatedButton(
+                        onPressed: isLoading
+                          ? null 
+                          : () {
+                            String firstname = _firstnameController.text.trim();
+                            String lastname = _lastnameController.text.trim();
+                            String email = _emailController.text.trim();
+                            String phone = _phoneController.text.trim();
+                            String birthDate = _birthDateController.text.trim();
+                            String birthPlace = _birthPlaceController.text.trim();
+                            String residenceState = _residenceStateController.text.trim();
+                            String residenceCity = _residenceCityController.text.trim();
+                            String emailPattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
+                              
+                            if (firstname.isEmpty || lastname.isEmpty || email.isEmpty || phone.isEmpty) {
+                              showTopSnackBar("يجب إدخال الاسم واللقب والبريد الإلكتروني ورقم الهاتف");
+                              return;
+                            }
+                            
+                            if (!RegExp(emailPattern).hasMatch(email)) {
+                              showTopSnackBar("الرجاء إدخال بريد إلكتروني صالح");
+                              return;
+                            }
+                            
+                            if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+                              showTopSnackBar("يجب أن يحتوي رقم الهاتف على 10 أرقام فقط");
+                              return;
+                            }
+                            
+                            if (birthDate.isEmpty) {
+                              showTopSnackBar("الرجاء إدخال تاريخ الميلاد");
+                              return;
+                            }
+                            
+                            if (birthPlace.isEmpty || residenceState.isEmpty || residenceCity.isEmpty) {
+                              showTopSnackBar("الرجاء إدخال مكان الميلاد ومكان الإقامة");
+                              return;
+                            }
+                            
+                            updateProfile();
+                          },
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: Size(double.infinity, 50),
+                          backgroundColor: Color(0xFF139799),
+                        ),
+                        child: isLoading
+                          ? CircularProgressIndicator(color: Colors.white) 
+                          : Text("حفظ التعديلات", style: TextStyle(fontFamily: 'Zain', fontSize: 18, color: Colors.white)),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 10),
-                Center(
-                  child: Text("تغيير الصورة الشخصية", 
-                    style: TextStyle(fontFamily: 'Zain', color: Colors.grey[700])),
-                ),
-                SizedBox(height: 25),
-                
-                CustomTextForm(hinttext: "الاسم", myController: _firstnameController, icon: Icons.person),
-                SizedBox(height: 20),
-                CustomTextForm(hinttext: "اللقب", myController: _lastnameController, icon: Icons.person),
-                SizedBox(height: 20),
-                CustomTextForm(hinttext: "البريد الالكتروني", myController: _emailController, icon: Icons.email),
-                SizedBox(height: 20),
-                CustomTextForm(hinttext: "رقم الهاتف", myController: _phoneController, icon: Icons.phone),
-                SizedBox(height: 20),
-                CustomTextForm(
-                  hinttext: "تاريخ الميلاد",
-                  myController: _birthDateController,
-                  icon: Icons.calendar_today,
-                  isDatePicker: true,
-                ),
-                SizedBox(height: 20),
-                CustomTextForm(
-                  hinttext: "ولاية الميلاد",
-                  myController: _birthPlaceController,
-                  icon: Icons.location_on,
-                ),
-                SizedBox(height: 20),
-                CustomTextForm(
-                  hinttext: "ولاية السكن",
-                  myController: _residenceStateController,
-                  icon: Icons.location_city,
-                ),
-                SizedBox(height: 20),
-                CustomTextForm(
-                  hinttext: "بلدية السكن",
-                  myController: _residenceCityController,
-                  icon: Icons.home,
-                ),
-                SizedBox(height: 30),
-               
-                ElevatedButton(
-                  onPressed: isLoading
-                    ? null 
-                    : () {
-                      String firstname = _firstnameController.text.trim();
-                      String lastname = _lastnameController.text.trim();
-                      String email = _emailController.text.trim();
-                      String phone = _phoneController.text.trim();
-                      String birthDate = _birthDateController.text.trim();
-                      String birthPlace = _birthPlaceController.text.trim();
-                      String residenceState = _residenceStateController.text.trim();
-                      String residenceCity = _residenceCityController.text.trim();
-                      String emailPattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
-                        
-                      if (firstname.isEmpty || lastname.isEmpty || email.isEmpty || phone.isEmpty) {
-                        showTopSnackBar("يجب إدخال الاسم واللقب والبريد الإلكتروني ورقم الهاتف");
-                        return;
-                      }
-                      
-                      if (!RegExp(emailPattern).hasMatch(email)) {
-                        showTopSnackBar("الرجاء إدخال بريد إلكتروني صالح");
-                        return;
-                      }
-                      
-                      if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
-                        showTopSnackBar("يجب أن يحتوي رقم الهاتف على 10 أرقام فقط");
-                        return;
-                      }
-                      
-                      if (birthDate.isEmpty) {
-                        showTopSnackBar("الرجاء إدخال تاريخ الميلاد");
-                        return;
-                      }
-                      
-                      if (birthPlace.isEmpty || residenceState.isEmpty || residenceCity.isEmpty) {
-                        showTopSnackBar("الرجاء إدخال مكان الميلاد ومكان الإقامة");
-                        return;
-                      }
-                      
-                      updateProfile();
-                    },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(double.infinity, 50),
-                    backgroundColor: Color(0xFF139799),
-                  ),
-                  child: isLoading
-                    ? CircularProgressIndicator(color: Colors.white) 
-                    : Text("حفظ التعديلات", style: TextStyle(fontFamily: 'Zain', fontSize: 18, color: Colors.white)),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
   

@@ -169,7 +169,7 @@ class _MyaccountState extends State<Myaccount> {
               Navigator.of(context).pushNamed('LibraryCard');
               break;
             case 'تعديل الملف الشخصي':
-              Navigator.push(
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => EditProfilePage(
@@ -177,6 +177,13 @@ class _MyaccountState extends State<Myaccount> {
                   ),
                 ),
               );
+              if (result == true) {
+    
+                setState(() {
+                  isLoading = true;
+                });
+                await _loadUserData();
+              }
               break;
             case 'قائمة الكتب المفضلة':
               Navigator.of(context).pushNamed('FavoriteBooks');
