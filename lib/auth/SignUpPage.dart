@@ -8,7 +8,6 @@ import 'package:cloudinary_public/cloudinary_public.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
-
   @override
   _SignUpPageState createState() => _SignUpPageState();
 }
@@ -100,7 +99,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
         CloudinaryFile.fromFile(
           _image!.path,
           resourceType: CloudinaryResourceType.Image,
-          folder: 'profile_images', 
+          folder: 'profile_images',
         ),
       );
       return response.secureUrl;

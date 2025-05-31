@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:libyyapp/mainPagesAdmin/LibraryCatalogadmin.dart';
 import 'package:libyyapp/mainPagesAdmin/MyaccountAdmin.dart';
 import 'package:libyyapp/mainPagesAdmin/moreAdmin.dart';
 import 'package:libyyapp/mainPagesAdmin/newsAdmin.dart';
-import 'package:libyyapp/mainPagesReader/search.dart';
+import 'package:libyyapp/mainPagesReader/LibraryCatalog.dart';
 import 'package:libyyapp/mainPagesAdmin/ShowpageAdmin.dart';
 
 class Homepageadmin extends StatefulWidget {
@@ -16,7 +17,7 @@ class _HomepageadminState extends State<Homepageadmin> {
    int _selectedIndex = 2; 
   final List<Widget> _pages = [
     Newsadmin(),
-    SearchScreen(),
+    LibraryCatalogadminScreen(),
     Showpageadmin(),
     Myaccountadmin(),
     MoreadminPage()
@@ -27,7 +28,7 @@ class _HomepageadminState extends State<Homepageadmin> {
   
   final List<Map<String, dynamic>> _tabs = [
     {"icon": Icons.newspaper_outlined, "text": "الأخبار"},
-    {"icon": Icons.search_sharp, "text": "ابحث"},
+    {"icon": Icons.list_alt, "text": "فهرس الكتب "},
     {"icon": Icons.home_filled, "text": "الرئيسية"},
     {"icon": Icons.person_2_rounded, "text": "حسابي"},
     {"icon": Icons.grid_view, "text": "المزيد"},

@@ -46,6 +46,7 @@ class _ShowpageState extends State<Showpage> {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('Books')
+          .where('isHidden', isEqualTo: false) 
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -78,58 +79,56 @@ class _ShowpageState extends State<Showpage> {
   }
 
   Widget _buildNotificationIcon() {
-  final currentUser = FirebaseAuth.instance.currentUser;
-  
-  // إذا لم يكن المستخدم مسجل الدخول
-  if (currentUser == null) {
-    return IconButton(
-      icon: Icon(Icons.notifications_active, color: Color(0xFF139799)),
-      onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('يجب تسجيل الدخول أولاً لعرض الإشعارات'),
-            behavior: SnackBarBehavior.floating,
+    final currentUser = FirebaseAuth.instance.currentUser;
+    
+    if (currentUser == null) {
+      return IconButton(
+        icon: Icon(Icons.notifications_active, color: Color(0xFF139799)),
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('يجب تسجيل الدخول أولاً لعرض الإشعارات'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: currentUser.uid)
+          .where('isRead', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data?.docs.length ?? 0;
+        
+        return badges.Badge(
+          badgeContent: Text(
+            unreadCount.toString(),
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+          badgeStyle: badges.BadgeStyle(
+            badgeColor: Colors.red,
+            padding: EdgeInsets.all(5),
+          ),
+          position: badges.BadgePosition.topEnd(top: -5, end: -5),
+          showBadge: unreadCount > 0,
+          child: IconButton(
+            icon: Icon(
+              Icons.notifications_active,
+              color: Color(0xFF139799),
+              size: 40,
+            ),
+            onPressed: () {
+              Navigator.of(context).pushNamed("/notification_screen");
+            },
           ),
         );
       },
     );
   }
-
-  // إذا كان المستخدم مسجل الدخول
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection('notifications')
-        .where('userId', isEqualTo: currentUser.uid) // استعلام فقط بإستخدام معرف المستخدم
-        .where('isRead', isEqualTo: false)
-        .snapshots(),
-    builder: (context, snapshot) {
-      final unreadCount = snapshot.data?.docs.length ?? 0;
-      
-      return badges.Badge(
-        badgeContent: Text(
-          unreadCount.toString(),
-          style: TextStyle(color: Colors.white, fontSize: 12),
-        ),
-        badgeStyle: badges.BadgeStyle(
-          badgeColor: Colors.red,
-          padding: EdgeInsets.all(5),
-        ),
-        position: badges.BadgePosition.topEnd(top: -5, end: -5),
-        showBadge: unreadCount > 0,
-        child: IconButton(
-          icon: Icon(
-            Icons.notifications_active,
-            color: Color(0xFF139799),
-            size: 40,
-          ),
-          onPressed: () {
-            Navigator.of(context).pushNamed("/notification_screen");
-          },
-        ),
-      );
-    },
-  );
-}
 
   @override
   Widget build(BuildContext context) {
@@ -480,7 +479,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   bool _isCheckingFavorite = true;
   bool _isAccountDisabled = false;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-
+  double _userRating = 0;
+  bool _hasUserRated = false;
+  String _userComment = '';
+  List<Map<String, dynamic>> _reviews = [];
+  bool _loadingReviews = true;
+  double _averageRating = 0;
+  int _totalRatings = 0;
 
   @override
   void initState() {
@@ -489,6 +494,265 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     _checkIfBookIsFavorite();
     _setupBorrowRequestListener();
     _checkAccountStatus();
+    _loadBookReviews();
+    _checkUserRating();
+  }
+
+  Future<void> _loadBookReviews() async {
+  try {
+    QuerySnapshot reviewsSnapshot = await FirebaseFirestore.instance
+        .collection('bookReviews')
+        .where('bookId', isEqualTo: widget.bookData.id)
+        .orderBy('timestamp', descending: true)
+        .get();
+
+    double totalRating = 0;
+    List<Map<String, dynamic>> reviews = [];
+
+    for (var doc in reviewsSnapshot.docs) {
+      var data = doc.data() as Map<String, dynamic>;
+      
+      reviews.add({
+        'id': doc.id, // أضف هذا السطر
+        'userId': data['userId'], // أضف هذا السطر
+        'rating': data['rating'],
+        'comment': data['comment'],
+        'timestamp': data['timestamp'],
+        'userName': data['userName'] ?? 'مستخدم',
+        'userPhotoUrl': data['userPhotoUrl'] ?? '',
+      });
+
+      totalRating += data['rating'] ?? 0;
+    }
+
+    double avgRating = reviews.isNotEmpty ? totalRating / reviews.length : 0;
+
+    setState(() {
+      _reviews = reviews;
+      _averageRating = avgRating;
+      _totalRatings = reviews.length;
+      _loadingReviews = false;
+    });
+  } catch (e) {
+    print('Error loading reviews: $e');
+    setState(() {
+      _loadingReviews = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('حدث خطأ في تحميل التقييمات')),
+    );
+  }
+}
+
+  Future<void> _checkUserRating() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      QuerySnapshot userRating = await FirebaseFirestore.instance
+          .collection('bookReviews')
+          .where('bookId', isEqualTo: widget.bookData.id)
+          .where('userId', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (userRating.docs.isNotEmpty) {
+        var data = userRating.docs.first.data() as Map<String, dynamic>;
+        setState(() {
+          _userRating = data['rating']?.toDouble() ?? 0;
+          _userComment = data['comment'] ?? '';
+          _hasUserRated = true;
+        });
+      }
+    } catch (e) {
+      print('Error checking user rating: $e');
+    }
+  }
+
+  Future<void> _submitRating() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('يجب تسجيل الدخول لتقييم الكتاب')),
+    );
+    return;
+  }
+
+  if (_userRating == 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('الرجاء اختيار تقييم من 1 إلى 5 نجوم')),
+    );
+    return;
+  }
+
+  try {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(user.uid)
+        .get();
+
+    String firstName = userDoc['first name'] ?? '';
+    String lastName = userDoc['last name'] ?? '';
+    String fullName = '$firstName $lastName'.trim();
+    if (fullName.isEmpty) {
+      fullName = user.email?.split('@').first ?? 'مستخدم';
+    }
+    
+    // التحقق من وجود حقل profile_image
+    String userPhotoUrl = '';
+    if (userDoc.exists && userDoc.data() != null) {
+      final userData = userDoc.data() as Map<String, dynamic>;
+      userPhotoUrl = userData['profile_image']?.toString() ?? '';
+    }
+
+    QuerySnapshot existingRating = await FirebaseFirestore.instance
+        .collection('bookReviews')
+        .where('bookId', isEqualTo: widget.bookData.id)
+        .where('userId', isEqualTo: user.uid)
+        .limit(1)
+        .get();
+
+    if (existingRating.docs.isNotEmpty) {
+      await existingRating.docs.first.reference.update({
+        'rating': _userRating,
+        'comment': _userComment,
+        'timestamp': FieldValue.serverTimestamp(),
+        'userName': fullName,
+        'userPhotoUrl': userPhotoUrl,
+      });
+    } else {
+      await FirebaseFirestore.instance.collection('bookReviews').add({
+        'bookId': widget.bookData.id,
+        'userId': user.uid,
+        'userName': fullName,
+        'userPhotoUrl': userPhotoUrl,
+        'rating': _userRating,
+        'comment': _userComment,
+        'timestamp': FieldValue.serverTimestamp(),
+        'bookTitle': widget.bookData['BookTitle'] ?? 'بدون عنوان',
+      });
+    }
+
+    await _updateBookRating();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('شكراً لتقييمك!')),
+    );
+
+    await _loadBookReviews();
+    setState(() {
+      _hasUserRated = true;
+    });
+  } catch (e) {
+    print('Error submitting rating: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('حدث خطأ أثناء حفظ التقييم: ${e.toString()}')),
+    );
+  }
+}
+
+  Future<void> _updateBookRating() async {
+    try {
+      QuerySnapshot reviewsSnapshot = await FirebaseFirestore.instance
+          .collection('bookReviews')
+          .where('bookId', isEqualTo: widget.bookData.id)
+          .get();
+
+      double totalRating = 0;
+      for (var doc in reviewsSnapshot.docs) {
+        totalRating += doc['rating'] ?? 0;
+      }
+
+      double avgRating = reviewsSnapshot.docs.isNotEmpty 
+          ? totalRating / reviewsSnapshot.docs.length 
+          : 0;
+
+      await FirebaseFirestore.instance
+          .collection('Books')
+          .doc(widget.bookData.id)
+          .update({
+            'averageRating': avgRating,
+            'totalRatings': reviewsSnapshot.docs.length,
+          });
+    } catch (e) {
+      print('Error updating book rating: $e');
+    }
+  }
+
+  void _showRatingDialog() {
+    // نستخدم StatefulBuilder لإدارة الحالة داخل الـ Dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        double tempRating = _userRating; // متغير مؤقت للتقييم
+        
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: AlertDialog(
+                backgroundColor: Colors.white,
+                title: Center(child: Text('قيم هذا الكتاب',style: TextStyle(color: Color(0xFF139799)),)),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('كم نجمة تعطي لهذا الكتاب؟'),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          return IconButton(
+                            icon: Icon(
+                              index < tempRating ? Icons.star : Icons.star_border,
+                              color: Colors.amber,
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              setDialogState(() {
+                                tempRating = index + 1.0; // تحديث الحالة داخل الـ Dialog
+                              });
+                            },
+                          );
+                        }),
+                      ),
+                      SizedBox(height: 20),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'تعليقك (اختياري)',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                        onChanged: (value) {
+                          _userComment = value;
+                        },
+                        controller: TextEditingController(text: _userComment),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text('إلغاء',style: TextStyle(color: Color(0xFF139799)),),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _userRating = tempRating; // حفظ التقييم النهائي
+                      });
+                      Navigator.of(context).pop();
+                      _submitRating();
+                    },
+                    child: Text('حفظ التقييم',style: TextStyle(color: Color(0xFF139799)),),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _setupBorrowRequestListener() {
@@ -549,73 +813,22 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Future<void> _checkAccountStatus() async {
-  final currentUser = FirebaseAuth.instance.currentUser;
-  if (currentUser == null) return;
-
-  try {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(currentUser.uid)
-        .get();
-        
-    if (userDoc.exists) {
-      _safeSetState(() {
-        _isAccountDisabled = userDoc['disabled'] ?? false;
-      });
-    }
-  } catch (e) {
-    print('Error checking account status: $e');
-  }
-}
-
-  Future<void> _toggleFavorite() async {
-    final User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('يجب تسجيل الدخول لإضافة إلى المفضلة')),
-      );
-      return;
-    }
-
-    _safeSetState(() {
-      _isCheckingFavorite = true;
-    });
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
 
     try {
-      if (_isBookFavorite) {
-        QuerySnapshot snapshot = await FirebaseFirestore.instance
-            .collection('favorites')
-            .where('userId', isEqualTo: user.uid)
-            .where('bookId', isEqualTo: widget.bookData.id)
-            .limit(1)
-            .get();
-
-        if (snapshot.docs.isNotEmpty) {
-          await snapshot.docs.first.reference.delete();
-        }
-      } else {
-        await FirebaseFirestore.instance.collection('favorites').add({
-          'userId': user.uid,
-          'bookId': widget.bookData.id,
-          'addedAt': DateTime.now(),
-          'bookTitle': widget.bookData['BookTitle'] ?? 'بدون عنوان',
-          'bookImage': widget.bookData['ImageUrl'] ?? '',
-          'bookAuthor': widget.bookData['Auther'] ?? 'بدون مؤلف',
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUser.uid)
+          .get();
+        
+      if (userDoc.exists) {
+        _safeSetState(() {
+          _isAccountDisabled = userDoc['disabled'] ?? false;
         });
       }
-
-      _safeSetState(() {
-        _isBookFavorite = !_isBookFavorite;
-        _isCheckingFavorite = false;
-      });
     } catch (e) {
-      print('Error toggling favorite: $e');
-      _safeSetState(() {
-        _isCheckingFavorite = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ أثناء تحديث المفضلة')),
-      );
+      print('Error checking account status: $e');
     }
   }
 
@@ -714,6 +927,57 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       }
     } catch (e) {
       print('Error checking expired notifications: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('يجب تسجيل الدخول لإضافة إلى المفضلة')),
+      );
+      return;
+    }
+
+    _safeSetState(() {
+      _isCheckingFavorite = true;
+    });
+
+    try {
+      if (_isBookFavorite) {
+        QuerySnapshot snapshot = await FirebaseFirestore.instance
+            .collection('favorites')
+            .where('userId', isEqualTo: user.uid)
+            .where('bookId', isEqualTo: widget.bookData.id)
+            .limit(1)
+            .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          await snapshot.docs.first.reference.delete();
+        }
+      } else {
+        await FirebaseFirestore.instance.collection('favorites').add({
+          'userId': user.uid,
+          'bookId': widget.bookData.id,
+          'addedAt': DateTime.now(),
+          'bookTitle': widget.bookData['BookTitle'] ?? 'بدون عنوان',
+          'bookImage': widget.bookData['ImageUrl'] ?? '',
+          'bookAuthor': widget.bookData['Auther'] ?? 'بدون مؤلف',
+        });
+      }
+
+      _safeSetState(() {
+        _isBookFavorite = !_isBookFavorite;
+        _isCheckingFavorite = false;
+      });
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      _safeSetState(() {
+        _isCheckingFavorite = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('حدث خطأ أثناء تحديث المفضلة')),
+      );
     }
   }
 
@@ -1069,46 +1333,155 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     return '${date.day}/${date.month}/${date.year}';
   }
 
- Widget _buildBorrowButton() {
-  if (_isAccountDisabled) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.red[50],
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.red, width: 1),
+
+  void _showEditRatingDialog() {
+  final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  if (currentUserId == null) return;
+
+  // البحث عن تقييم المستخدم الحالي
+  final userReview = _reviews.firstWhere(
+    (review) => review['userId'] == currentUserId,
+    orElse: () => {},
+  );
+
+  if (userReview.isEmpty) return;
+
+  double tempRating = userReview['rating']?.toDouble() ?? 0;
+  TextEditingController commentController = TextEditingController(text: userReview['comment'] ?? '');
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setDialogState) {
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              backgroundColor: Colors.white,
+              title: Center(child: Text('تعديل تقييمك', style: TextStyle(color: Color(0xFF139799)))),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('كم نجمة تعطي لهذا الكتاب الآن؟'),
+                    SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return IconButton(
+                          icon: Icon(
+                            index < tempRating ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
+                            size: 30,
+                          ),
+                          onPressed: () {
+                            setDialogState(() {
+                              tempRating = index + 1.0;
+                            });
+                          },
+                        );
+                      }),
+                    ),
+                    SizedBox(height: 20),
+                    TextField(
+                      controller: commentController,
+                      decoration: InputDecoration(
+                        labelText: 'تعديل تعليقك',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('إلغاء', style: TextStyle(color: Color(0xFF139799))),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('bookReviews')
+                          .doc(userReview['id'])
+                          .update({
+                            'rating': tempRating,
+                            'comment': commentController.text,
+                            'timestamp': FieldValue.serverTimestamp(),
+                          });
+
+                      // تحديث الحالة المحلية
+                      setState(() {
+                        _userRating = tempRating;
+                        _userComment = commentController.text;
+                      });
+
+                      // إعادة تحميل التقييمات
+                      await _loadBookReviews();
+
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('تم تحديث تقييمك بنجاح')),
+                      );
+                    } catch (e) {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('حدث خطأ أثناء تحديث التقييم: $e')),
+                      );
+                    }
+                  },
+                  child: Text('حفظ التغييرات', style: TextStyle(color: Color(0xFF139799))),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+  Widget _buildBorrowButton() {
+    if (_isAccountDisabled) {
+      return Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.red, width: 1),
+        ),
+        child: Text(
+          'تم تعطيل حسابك حالياً. لا يمكنك استعارة الكتب الآن',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      );
+    }
+
+    return ElevatedButton(
+      onPressed: () => _submitBorrowRequest(context),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Color(0xFF139799),
+        foregroundColor: Colors.white,
+        minimumSize: Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
       child: Text(
-        'تم تعطيل حسابك حالياً. لا يمكنك استعارة الكتب الآن',
-        textAlign: TextAlign.center,
+        'تقديم طلب استعارة',
         style: TextStyle(
-          color: Colors.red,
-          fontWeight: FontWeight.bold,
           fontSize: 16,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
-
-  return ElevatedButton(
-    onPressed: () => _submitBorrowRequest(context),
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Color(0xFF139799),
-      foregroundColor: Colors.white,
-      minimumSize: Size(double.infinity, 50),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-    ),
-    child: Text(
-      'تقديم طلب استعارة',
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  );
-}
 
   Widget _buildPendingButton() {
     return Column(
@@ -1154,67 +1527,68 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildNotifiedButton() {
-  if (_isAccountDisabled) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.red[50],
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.red, width: 1),
-      ),
-      child: Text(
-        'تم تعطيل حسابك حالياً. لا يمكنك استعارة الكتب الآن',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: Colors.red,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
+    if (_isAccountDisabled) {
+      return Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.red, width: 1),
         ),
-      ),
+        child: Text(
+          'تم تعطيل حسابك حالياً. لا يمكنك استعارة الكتب الآن',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Container(
+          padding: EdgeInsets.all(8),
+          margin: EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.green, width: 1),
+          ),
+          child: Text(
+            'الكتاب أصبح متوفراً الآن، يمكنك تقديم طلب استعارة. إذا لم تستجب سيتم إلغاء العملية',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.green.shade800,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        ElevatedButton.icon(
+          onPressed: () => _submitBorrowRequest(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF139799),
+            foregroundColor: Colors.white,
+            minimumSize: Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          icon: Icon(Icons.book),
+          label: Text(
+            'استعارة الكتاب',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  return Column(
-    children: [
-      Container(
-        padding: EdgeInsets.all(8),
-        margin: EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.green, width: 1),
-        ),
-        child: Text(
-          'الكتاب أصبح متوفراً الآن، يمكنك تقديم طلب استعارة. إذا لم تستجب سيتم إلغاء العملية',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.green.shade800,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      ElevatedButton.icon(
-        onPressed: () => _submitBorrowRequest(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFF139799),
-          foregroundColor: Colors.white,
-          minimumSize: Size(double.infinity, 50),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        icon: Icon(Icons.book),
-        label: Text(
-          'استعارة الكتاب',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    ],
-  );
-}
   Widget _buildExpiredButton() {
     return Column(
       children: [
@@ -1259,35 +1633,36 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildWaitingListButton() {
-  if (_isAccountDisabled) {
-    return _buildDisabledAccountMessage();
+    if (_isAccountDisabled) {
+      return _buildDisabledAccountMessage();
+    }
+
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange, width: 1),
+      ),
+      width: double.infinity,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.watch_later, color: Colors.orange),
+          SizedBox(width: 8),
+          Text(
+            'أنت في قائمة الانتظار لهذا الكتاب',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.orange.shade800,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  return Container(
-    padding: EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.orange.shade50,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.orange, width: 1),
-    ),
-    width: double.infinity,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.watch_later, color: Colors.orange),
-        SizedBox(width: 8),
-        Text(
-          'أنت في قائمة الانتظار لهذا الكتاب',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.orange.shade800,
-          ),
-        ),
-      ],
-    ),
-  );
-}
   Widget _buildBorrowedButton() {
     return ElevatedButton.icon(
       onPressed: null,
@@ -1311,22 +1686,198 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Widget _buildDisabledAccountMessage() {
-  return Container(
-    padding: EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.red[50],
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.red, width: 1),
-    ),
-    child: Text(
-      'تم تعطيل حسابك حالياً. لا يمكنك حجز الكتب الآن',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        color: Colors.red,
-        fontWeight: FontWeight.bold,
-        fontSize: 16,
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.red, width: 1),
       ),
-    ),
+      child: Text(
+        'تم تعطيل حسابك حالياً. لا يمكنك حجز الكتب الآن',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Colors.red,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
+      ),
+    );
+  }
+
+
+
+
+  Widget _buildRatingSection() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(height: 30),
+      Divider(thickness: 1),
+      SizedBox(height: 10),
+      Text(
+        'تقييم الكتاب',
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF139799),
+        ),
+      ),
+      SizedBox(height: 10),
+      
+      // متوسط التقييم وعدد التقييمات
+      Row(
+        children: [
+          Text(
+            'التقييم العام: ',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          Row(
+            children: List.generate(5, (index) {
+              return Icon(
+                index < _averageRating.floor()
+                    ? Icons.star
+                    : (_averageRating - index > 0.5 ? Icons.star_half : Icons.star_border),
+                color: Colors.amber,
+                size: 24,
+              );
+            }),
+          ),
+          SizedBox(width: 16),
+          Text(
+            '(${_averageRating.toStringAsFixed(1)})', 
+            style: TextStyle(fontSize: 16),
+          ),
+          SizedBox(width: 20),
+          Text(
+            '(${_totalRatings} ${_totalRatings == 1 ? 'تقييم' : 'تقييمات'})', 
+            style: TextStyle(fontSize: 16),
+          ),
+        ],
+      ),
+      
+      // زر إضافة/تعديل التقييم
+      if (_hasUserRated)
+        Padding(
+          padding: EdgeInsets.only(top: 10),
+          child: TextButton(
+            onPressed: () {
+              _showEditRatingDialog();
+            },
+            child: Text(
+              'تعديل التقييم',
+              style: TextStyle(
+                color: Color(0xFF139799),
+                fontSize: 16,
+              ),
+            ),
+          ),
+        )
+      else
+        Padding(
+          padding: EdgeInsets.only(top: 10),
+          child: ElevatedButton(
+            onPressed: _showRatingDialog,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[50],
+              foregroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text('أضف تقييمك للكتاب'),
+          ),
+        ),
+      
+      // قسم آراء القراء
+      SizedBox(height: 20),
+      Text(
+        'آراء القراء',
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF139799),
+        ),
+      ),
+      SizedBox(height: 10),
+      
+      if (_loadingReviews)
+        Center(child: CircularProgressIndicator())
+      else if (_reviews.isEmpty)
+        Text('لا توجد تقييمات بعد، كن أول من يقيم هذا الكتاب!')
+      else
+        Column(
+          children: _reviews.map((review) {
+            return Container(
+              margin: EdgeInsets.only(bottom: 16),
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: review['userPhotoUrl']?.isNotEmpty == true
+                            ? Colors.transparent
+                            : Colors.blueGrey,
+                        backgroundImage: review['userPhotoUrl']?.isNotEmpty == true
+                            ? NetworkImage(review['userPhotoUrl'])
+                            : null,
+                        child: review['userPhotoUrl']?.isNotEmpty == true
+                            ? null
+                            : Icon(Icons.person, color: Colors.white),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              review['userName'] ?? 'مستخدم',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Row(
+                              children: List.generate(5, (index) {
+                                return Icon(
+                                  index < (review['rating'] ?? 0)
+                                      ? Icons.star
+                                      : Icons.star_border,
+                                  color: Colors.amber,
+                                  size: 16,
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (review['comment']?.isNotEmpty == true) ...[
+                    SizedBox(height: 8),
+                    Text(review['comment']),
+                  ],
+                  SizedBox(height: 8),
+                  Text(
+                    _formatDate((review['timestamp'] as Timestamp).toDate()),
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+    ],
   );
 }
 
@@ -1347,7 +1898,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       child: Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
-          
           title: Text(
             title,
             style: TextStyle(
@@ -1543,6 +2093,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                         ],
                       ),
                     
+                    
                     SizedBox(height: 20),
                     
                     Center(
@@ -1561,30 +2112,32 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                           else if (availableCopies > 0)
                             _buildBorrowButton()
                           else
-                    _isAccountDisabled 
-                      ? _buildDisabledAccountMessage()
-                      : ElevatedButton.icon(
-                          onPressed: () => _addToWaitingList(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                            minimumSize: Size(double.infinity, 50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          icon: Icon(Icons.watch_later),
-                          label: Text(
-                            'احجز الكتاب وانضم إلى قائمة الانتظار',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                            _isAccountDisabled 
+                              ? _buildDisabledAccountMessage()
+                              : ElevatedButton.icon(
+                                  onPressed: () => _addToWaitingList(context),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    foregroundColor: Colors.white,
+                                    minimumSize: Size(double.infinity, 50),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  icon: Icon(Icons.watch_later),
+                                  label: Text(
+                                    'احجز الكتاب وانضم إلى قائمة الانتظار',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                         ],
                       ),
                     ),
+                    //rating and reviews section
+                    _buildRatingSection(),
                   ],
                 ),
               ),

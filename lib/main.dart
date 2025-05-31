@@ -60,7 +60,7 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         
         scaffoldBackgroundColor: Colors.white, 
-        fontFamily: 'Zain'
+        fontFamily: 'Zain',
       ),
       navigatorKey: navigatorKey,
       routes: {

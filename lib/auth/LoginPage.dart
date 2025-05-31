@@ -14,7 +14,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  GlobalKey<FormState> formState = GlobalKey<FormState>();
   OverlayEntry? _overlayEntry;
   late AnimationController _animationController;
   late Animation<Offset> _animation;
@@ -81,7 +80,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Zain',
-                  fontSize: MediaQuery.of(context).size.width * 0.04, // حجم الخط نسبي
+                  fontSize: MediaQuery.of(context).size.width * 0.04, 
                   color: Colors.black,
                 ),
               ),

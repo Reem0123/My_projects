@@ -26,6 +26,7 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
   late TextEditingController _titleController;
   late TextEditingController _autherController;
   late TextEditingController _categoryController;
+  late TextEditingController _copiesController;
   late TextEditingController _descriptionController;
   OverlayEntry? _overlayEntry;
   
@@ -40,6 +41,7 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
     _titleController.dispose();
     _autherController.dispose();
     _categoryController.dispose();
+    _copiesController.dispose();
     _descriptionController.dispose();
     _animationController.dispose();
     super.dispose();
@@ -56,6 +58,10 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
                 (widget.bookData.data() as Map<String, dynamic>).containsKey('description') 
                 ? widget.bookData['description'] 
                 : '';
+    final int copies = widget.bookData.data() != null && 
+                (widget.bookData.data() as Map<String, dynamic>).containsKey('copies') 
+                ? widget.bookData['copies'] 
+                : 1;
     
     _currentImageUrl = widget.bookData.data() != null && 
                 (widget.bookData.data() as Map<String, dynamic>).containsKey('ImageUrl') 
@@ -66,6 +72,7 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
     _titleController = TextEditingController(text: title);
     _autherController = TextEditingController(text: author);
     _categoryController = TextEditingController(text: category);
+    _copiesController = TextEditingController(text: copies.toString());
     _descriptionController = TextEditingController(text: description);
     
 
@@ -151,12 +158,18 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
         imageUrl = await _uploadImageToCloudinary();
       }
       
+      int copies = int.tryParse(_copiesController.text.trim()) ?? 1;
+      String status = copies > 0 ? 'متاح' : 'مستعار';
+      
       await FirebaseFirestore.instance.collection('Books').doc(widget.bookData.id).update({
         'BookTitle': _titleController.text.trim(),
         'Auther': _autherController.text.trim(),
         'Category': _categoryController.text.trim(),
         'description': _descriptionController.text.trim(),
         'ImageUrl': imageUrl ?? '',
+        'copies': copies,
+        'availableCopies': copies, // يمكنك تعديل هذا حسب احتياجاتك
+        'status': status,
       });
       
       Navigator.of(context).pushReplacementNamed("HomeAdmin");
@@ -164,7 +177,7 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
       setState(() {
         isLoading = false;
       });
-     
+      showTopSnackBar("حدث خطأ أثناء تحديث الكتاب: ${error.toString()}");
       print('Error updating book: ${error.toString()}');
     }
   }
@@ -309,6 +322,13 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
                 SizedBox(height: 20),
                 CustomTextForm(hinttext: "تصنيف الكتاب", myController: _categoryController, icon: Icons.category),
                 SizedBox(height: 20),
+                CustomTextForm(
+                  hinttext: "عدد النسخ", 
+                  myController: _copiesController, 
+                  icon: Icons.copy,
+                  keyboardType: TextInputType.number,
+                ),
+                SizedBox(height: 20),
                 
                
                 TextFormField(
@@ -340,9 +360,15 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
                       String title = _titleController.text.trim();
                       String author = _autherController.text.trim();
                       String category = _categoryController.text.trim();
+                      String copies = _copiesController.text.trim();
                         
                       if (title.isEmpty || author.isEmpty) {
                         showTopSnackBar("الرجاء إدخال عنوان الكتاب واسم المؤلف");
+                        return;
+                      }
+                      
+                      if (copies.isEmpty || int.tryParse(copies) == null || int.parse(copies) < 0) {
+                        showTopSnackBar("الرجاء إدخال عدد صحيح موجب للنسخ");
                         return;
                       }
                       

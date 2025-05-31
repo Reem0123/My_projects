@@ -137,9 +137,7 @@ class _AddbookformState extends State<Addbookform> with SingleTickerProviderStat
       imageUrl = await _uploadImageToCloudinary();
     }
     
-   
     int copies = int.tryParse(_copiesController.text.trim()) ?? 1;
-    
     String status = copies > 0 ? 'متاح' : 'مستعار';
     
     // generating keywords for the search 
@@ -147,7 +145,6 @@ class _AddbookformState extends State<Addbookform> with SingleTickerProviderStat
       _titleController.text.trim(),
       _autherController.text.trim()
     );
-    
     
     DocumentReference newBookRef = await FirebaseFirestore.instance.collection('Books').add({
       'BookTitle': _titleController.text.trim(),
@@ -159,15 +156,14 @@ class _AddbookformState extends State<Addbookform> with SingleTickerProviderStat
       'copies': copies,
       'availableCopies': copies,
       'createdAt': FieldValue.serverTimestamp(),
-      'searchKeywords': searchKeywords, 
+      'searchKeywords': searchKeywords,
+      'isHidden': false, // تم إضافة هذا الحقل مع قيمة افتراضية false
     });
 
-    
     if (mounted) {
       Navigator.of(context).pushReplacementNamed("HomeAdmin");
     }
 
-   
     _sendNewBookNotification(
       bookTitle: _titleController.text.trim(),
       author: _autherController.text.trim(),

@@ -628,7 +628,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
                         final now = DateTime.now();
                         final bool isExpired = expiryDate != null && !expiryDate.isAfter(now);
 
-                        // استدعاء دالة الرفض تلقائياً عند انتهاء المهلة
+                        
                         if (isExpired && !isReceivingExpired) {
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             _rejectBookReceiving(context, userId, requestId);

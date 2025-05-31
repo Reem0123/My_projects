@@ -27,9 +27,19 @@ class _ShowpageadminState extends State<Showpageadmin> {
 
   getData() async {
     try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Books')
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('Books')
+        .where('isHidden', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .get();
+
+       print("عدد الكتب الجديدة: ${querySnapshot.docs.length}");
+
+    // طباعة عناوين الكتب للتأكد من وجودها
+    for (var doc in querySnapshot.docs) {
+      print("عنوان الكتاب: ${doc['BookTitle']}, isHidden: ${doc['isHidden']}");
+    }
+
       Map<String, List<QueryDocumentSnapshot>> tempCategorizedBooks = {};
       for (var doc in querySnapshot.docs) {
         String category = doc['Category'] ?? 'عام';
@@ -52,10 +62,14 @@ class _ShowpageadminState extends State<Showpageadmin> {
       });
       
     } catch (e) {
-      print("Error getting documents: $e");
-      setState(() {
-        isLoading = false;
-      });
+       print("Error getting documents: $e");
+  if (e is FirebaseException) {
+    print("Firebase error code: ${e.code}");
+    print("Firebase error message: ${e.message}");
+  }
+  setState(() {
+    isLoading = false;
+  });
     }
   }
 
@@ -460,11 +474,11 @@ void _showAdminOptions(BuildContext context, QueryDocumentSnapshot bookData) {
                 },
               ),
               ListTile(
-                leading: Icon(Icons.delete, color: Colors.red),
-                title: Text('حذف الكتاب'),
+                leading: Icon(Icons.visibility_off, color: Colors.orange),
+                title: Text('إخفاء الكتاب من الواجهة الرئيسية'),
                 onTap: () {
                   Navigator.pop(context);
-                  _showDeleteConfirmation(context, bookData);
+                  _showHideConfirmation(context, bookData);
                 },
               ),
             ],
@@ -474,35 +488,43 @@ void _showAdminOptions(BuildContext context, QueryDocumentSnapshot bookData) {
     },
   );
 }
-  void _showDeleteConfirmation(BuildContext context, QueryDocumentSnapshot bookData) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: AlertDialog(
-            title: Text('تأكيد الحذف'),
-            content: Text('هل أنت متأكد من حذف هذا الكتاب؟'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('إلغاء'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  await FirebaseFirestore.instance.collection('Books').doc(bookData.id).delete();
-                  Navigator.of(context).pushReplacementNamed('HomeAdmin');
-                },
-                child: Text('حذف', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+
+
+void _showHideConfirmation(BuildContext context, QueryDocumentSnapshot bookData) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: Text('إخفاء الكتاب'),
+          content: Text('هل أنت متأكد من إخفاء هذا الكتاب من الواجهة الرئيسية؟'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('إلغاء'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('Books')
+                    .doc(bookData.id)
+                    .update({'isHidden': true});
+                Navigator.of(context).pop();
+                print('تم إخفاء الكتاب بنجاح');
+                
+                Navigator.of(context).pushReplacementNamed('HomeAdmin');
+              },
+              child: Text('إخفاء', style: TextStyle(color: Colors.orange)),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 }
 
 class AdminBookDetailsScreen extends StatefulWidget {
