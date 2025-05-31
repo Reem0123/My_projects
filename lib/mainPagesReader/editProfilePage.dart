@@ -168,33 +168,43 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
     });
   }
 
-  Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? pickedImage = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
-    
-    if (pickedImage != null) {
-      setState(() {
-        _selectedImage = File(pickedImage.path);
-      });
-    }
+  
+Future<void> _pickImage() async {
+  final ImagePicker picker = ImagePicker();
+  final XFile? pickedImage = await picker.pickImage(
+    source: ImageSource.gallery,
+    imageQuality: 80,
+  );
+  
+  if (pickedImage != null) {
+    setState(() {
+      _selectedImage = File(pickedImage.path);
+    });
   }
+}
 
-  Future<void> _captureImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? capturedImage = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 80,
-    );
-    
-    if (capturedImage != null) {
-      setState(() {
-        _selectedImage = File(capturedImage.path);
-      });
-    }
+
+Future<void> _captureImage() async {
+  final ImagePicker picker = ImagePicker();
+  final XFile? capturedImage = await picker.pickImage(
+    source: ImageSource.camera,
+    imageQuality: 80,
+  );
+  
+  if (capturedImage != null) {
+    setState(() {
+      _selectedImage = File(capturedImage.path);
+    });
   }
+}
+
+
+void _removeImage() {
+  setState(() {
+    _selectedImage = null;
+    _currentImageUrl = null;
+  });
+}
 
   Future<String?> _uploadImageToCloudinary() async {
     if (_selectedImage == null) return _currentImageUrl; 
@@ -216,63 +226,104 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
   }
 
   Future<void> updateProfile() async {
+  setState(() {
+    isLoading = true;
+  });
+  
+  try {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    
+    if (currentUser == null) {
+      throw Exception("لم يتم العثور على المستخدم الحالي");
+    }
+    
+    String? imageUrl = _currentImageUrl;
+    if (_selectedImage != null) {
+      imageUrl = await _uploadImageToCloudinary();
+    }
+    // إذا كانت الصورة قد أزيلت
+    else if (_currentImageUrl == null && userData['profile_image'] != null) {
+      imageUrl = ''; // إعداد قيمة فارغة لإزالة الصورة
+    }
+    
+    DateTime birthDate;
+    try {
+      birthDate = DateTime.parse(_birthDateController.text);
+    } catch (e) {
+      showTopSnackBar("صيغة التاريخ غير صحيحة. الرجاء استخدام صيغة YYYY-MM-DD");
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+    
+    // تحضير بيانات التحديث
+    Map<String, dynamic> updateData = {
+      'first name': _firstnameController.text.trim(),
+      'last name': _lastnameController.text.trim(),
+      'email': _emailController.text.trim(),
+      'phone number': _phoneController.text.trim(),
+      'birth date': birthDate,
+      'birth place': _birthPlaceController.text.trim(),
+      'residence State': _residenceStateController.text.trim(),
+      'residence city': _residenceCityController.text.trim(),
+    };
+    
+    // إضافة صورة الملف الشخصي فقط إذا كانت متوفرة
+    if (imageUrl != null) {
+      updateData['profile_image'] = imageUrl;
+    } else {
+      updateData['profile_image'] = ''; // أو يمكن استخدام null إذا كنت تفضل ذلك
+    }
+    
+    // تنفيذ التحديث في Firestore
+    await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(widget.userId)
+        .update(updateData);
+    
+    // تحديث البريد الإلكتروني في Firebase Auth إذا تغير
+    if (currentUser.email != _emailController.text.trim()) {
+      await currentUser.updateEmail(_emailController.text.trim());
+    }
+    
     setState(() {
-      isLoading = true;
+      isLoading = false;
     });
     
-    try {
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      
-      if (currentUser == null) {
-        throw Exception("لم يتم العثور على المستخدم الحالي");
+    // إظهار رسالة نجاح وإغلاق الصفحة
+    showTopSnackBar("تم تحديث الملف الشخصي بنجاح");
+    Navigator.of(context).pop(true);
+    
+  } catch (error) {
+    setState(() {
+      isLoading = false;
+    });
+    
+    String errorMessage = "حدث خطأ أثناء تحديث الملف الشخصي";
+    
+    if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'requires-recent-login':
+          errorMessage = "يتطلب هذا الإجراء تسجيل الدخول حديثاً. الرجاء تسجيل الخروج ثم الدخول مرة أخرى";
+          break;
+        case 'email-already-in-use':
+          errorMessage = "البريد الإلكتروني مستخدم بالفعل من قبل حساب آخر";
+          break;
+        case 'invalid-email':
+          errorMessage = "البريد الإلكتروني غير صالح";
+          break;
+        default:
+          errorMessage = "خطأ في المصادقة: ${error.message}";
       }
-      
-      String? imageUrl = _currentImageUrl;
-      if (_selectedImage != null) {
-        imageUrl = await _uploadImageToCloudinary();
-      }
-      
-      DateTime birthDate;
-      try {
-        birthDate = DateTime.parse(_birthDateController.text);
-      } catch (e) {
-        showTopSnackBar("صيغة التاريخ غير صحيحة. الرجاء استخدام صيغة YYYY-MM-DD");
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-      
-      await FirebaseFirestore.instance.collection('Users').doc(widget.userId).update({
-        'first name': _firstnameController.text.trim(),
-        'last name': _lastnameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'phone number': _phoneController.text.trim(),
-        'birth date': birthDate,
-        'birth place': _birthPlaceController.text.trim(),
-        'residence State': _residenceStateController.text.trim(),
-        'residence city': _residenceCityController.text.trim(),
-        'profile_image': imageUrl ?? '',
-      });
-      
-      if (currentUser.email != _emailController.text.trim()) {
-        await currentUser.updateEmail(_emailController.text.trim());
-      }
-      
-      setState(() {
-        isLoading = false;
-      });
-      
-      
-      Navigator.of(context).pop(true);
-    } catch (error) {
-      setState(() {
-        isLoading = false;
-      });
-      print('Error updating profile: ${error.toString()}');
+    } else if (error is FirebaseException) {
+      errorMessage = "خطأ في قاعدة البيانات: ${error.message}";
     }
+    
+    showTopSnackBar(errorMessage);
+    print('Error updating profile: ${error.toString()}');
   }
-
+}
   OverlayEntry _createOverlayEntry(String message) {
     return OverlayEntry(
       builder: (context) => Positioned(
@@ -472,80 +523,116 @@ class _EditProfilePageState extends State<EditProfilePage> with SingleTickerProv
     );
   }
   
-  void _showImageSourceOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Container(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "اختر مصدر الصورة",
-                  style: TextStyle(
-                    fontFamily: 'Zain',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+ void _showImageSourceOptions() {
+  showModalBottomSheet(
+    context: context,
+    builder: (BuildContext context) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "اختر مصدر الصورة",
+                style: TextStyle(
+                  fontFamily: 'Zain',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF139799),
+                ),
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // زر الكاميرا
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _captureImage();
+                    },
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Color(0xFF139799).withOpacity(0.1),
+                          child: Icon(
+                            Icons.camera_alt,
+                            size: 30,
+                            color: Color(0xFF139799),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text("الكاميرا", 
+                            style: TextStyle(
+                              fontFamily: 'Zain',
+                              color: Color(0xFF139799))),
+                      ],
+                    ),
+                  ),
+                  
+                  // زر المعرض
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage();
+                    },
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Color(0xFF139799).withOpacity(0.1),
+                          child: Icon(
+                            Icons.photo_library,
+                            size: 30,
+                            color: Color(0xFF139799),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text("المعرض", 
+                            style: TextStyle(
+                              fontFamily: 'Zain',
+                              color: Color(0xFF139799))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 15),
+              
+              // خيار إزالة الصورة (بنفس التصميم)
+              if (_currentImageUrl != null || _selectedImage != null)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeImage();
+                  },
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Color(0xFF139799).withOpacity(0.1),
+                        child: Icon(
+                          Icons.delete,
+                          size: 30,
+                          color: Color(0xFF139799),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text("إزالة الصورة", 
+                          style: TextStyle(
+                            fontFamily: 'Zain',
+                            color: Color(0xFF139799))),
+                    ],
                   ),
                 ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _captureImage();
-                      },
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Color(0xFF139799).withOpacity(0.1),
-                            child: Icon(
-                              Icons.camera_alt,
-                              size: 30,
-                              color: Color(0xFF139799),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text("الكاميرا", style: TextStyle(fontFamily: 'Zain')),
-                        ],
-                      ),
-                    ),
-                    
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _pickImage();
-                      },
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Color(0xFF139799).withOpacity(0.1),
-                            child: Icon(
-                              Icons.photo_library,
-                              size: 30,
-                              color: Color(0xFF139799),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text("المعرض", style: TextStyle(fontFamily: 'Zain')),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 15),
-              ],
-            ),
+            ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:libyyapp/firebase_api.dart';
@@ -307,13 +306,6 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
     } catch (e) {
       print('❌ خطأ في _checkNextWaitingUser: $e');
       
-      // يمكنك إضافة إعادة المحاولة أو تسجيل الخطأ للتحليل لاحقاً
-      await FirebaseFirestore.instance.collection('error_logs').add({
-        'error': e.toString(),
-        'function': '_checkNextWaitingUser',
-        'timestamp': FieldValue.serverTimestamp(),
-        'bookId': bookId,
-      });
     }
   }
 
@@ -626,7 +618,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
                       stream: Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()),
                       builder: (context, snapshot) {
                         final now = DateTime.now();
-                        final bool isExpired = expiryDate != null && !expiryDate.isAfter(now);
+                        final bool isExpired = !expiryDate.isAfter(now);
 
                         
                         if (isExpired && !isReceivingExpired) {

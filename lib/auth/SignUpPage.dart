@@ -91,6 +91,12 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
     }
   }
 
+  void _removeImage() {
+    setState(() {
+      _image = null;
+    });
+  }
+
   Future<String?> _uploadImageToCloudinary() async {
     if (_image == null) return null;
     
@@ -106,6 +112,29 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
     } catch (e) {
       print('Error uploading image to Cloudinary: $e');
       throw e;
+    }
+  }
+
+  bool _isValidName(String name) {
+    // تسمح بالحروف العربية والفرنسية والإنجليزية والفراغات
+    final nameRegExp = RegExp(r'^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FFa-zA-Z\s]+$');
+    return nameRegExp.hasMatch(name);
+  }
+
+  bool _isValidLocation(String location) {
+    // تسمح بالحروف العربية والفرنسية والإنجليزية والفراغات
+    final locationRegExp = RegExp(r'^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FFa-zA-Z\s]+$');
+    return locationRegExp.hasMatch(location);
+  }
+
+  bool _isValidBirthDate(String date) {
+    try {
+      final birthDate = DateTime.parse(date);
+      final now = DateTime.now();
+      final minBirthDate = DateTime(now.year - 6, now.month, now.day);
+      return birthDate.isBefore(minBirthDate);
+    } catch (e) {
+      return false;
     }
   }
 
@@ -185,368 +214,495 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
   }
 
   void _showImageSourceOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Container(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "اختر مصدر الصورة",
-                  style: TextStyle(
-                    fontFamily: 'Zain',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+  showModalBottomSheet(
+    context: context,
+    builder: (BuildContext context) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "اختر مصدر الصورة",
+                style: TextStyle(
+                  fontFamily: 'Zain',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF139799),
                 ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _captureImage();
-                      },
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Color(0xFF139799).withOpacity(0.1),
-                            child: Icon(
-                              Icons.camera_alt,
-                              size: 30,
-                              color: Color(0xFF139799),
-                            ),
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // زر الكاميرا
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _captureImage();
+                    },
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Color(0xFF139799).withOpacity(0.1),
+                          child: Icon(
+                            Icons.camera_alt,
+                            size: 30,
+                            color: Color(0xFF139799),
                           ),
-                          SizedBox(height: 8),
-                          Text("الكاميرا", style: TextStyle(fontFamily: 'Zain')),
-                        ],
-                      ),
+                        ),
+                        SizedBox(height: 8),
+                        Text("الكاميرا", 
+                            style: TextStyle(
+                              fontFamily: 'Zain',
+                              color: Color(0xFF139799))),
+                      ],
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _pickImage();
-                      },
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Color(0xFF139799).withOpacity(0.1),
-                            child: Icon(
-                              Icons.photo_library,
-                              size: 30,
-                              color: Color(0xFF139799),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text("المعرض", style: TextStyle(fontFamily: 'Zain')),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 15),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-Widget build(BuildContext context) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final screenHeight = MediaQuery.of(context).size.height;
-  final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-  final textScaleFactor = MediaQuery.of(context).textScaleFactor;
-
-  return Scaffold(
-    body: isLoading == true 
-        ? Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF139799)),
-            ),
-          ) 
-        : Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: screenWidth * 0.05,
-              vertical: isPortrait ? screenHeight * 0.02 : screenHeight * 0.01,
-            ),
-            child: Center(
-              child: SingleChildScrollView(
-                physics: BouncingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: screenHeight,
                   ),
+                  
+                  // زر المعرض
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage();
+                    },
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Color(0xFF139799).withOpacity(0.1),
+                          child: Icon(
+                            Icons.photo_library,
+                            size: 30,
+                            color: Color(0xFF139799),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text("المعرض", 
+                            style: TextStyle(
+                              fontFamily: 'Zain',
+                              color: Color(0xFF139799))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 15),
+              
+              // خيار إزالة الصورة (بنفس التصميم)
+              if (_image != null)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeImage();
+                  },
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      SizedBox(height: screenHeight * 0.02),
-                      Text(
-                        'تسجيل حساب جديد',
-                        style: TextStyle(
-                          fontFamily: 'Zain',
-                          fontSize: screenWidth * 0.045 * textScaleFactor,
-                          fontWeight: FontWeight.bold,
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Color(0xFF139799).withOpacity(0.1),
+                        child: Icon(
+                          Icons.delete,
+                          size: 30,
                           color: Color(0xFF139799),
                         ),
                       ),
-                      SizedBox(height: screenHeight * 0.03),
-                      GestureDetector(
-                        onTap: _showImageSourceOptions,
-                        child: Container(
-                          width: screenWidth * 0.25,
-                          height: screenWidth * 0.25,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 6,
-                                offset: Offset(0, 3),
-                              ),
-                            ],
-                            border: Border.all(
-                              color: Color(0xFF139799).withOpacity(0.3),
-                              width: 2,
-                            ),
-                          ),
-                          child: _image != null
-                              ? ClipOval(
-                                  child: Image.file(
-                                    _image!,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.camera_alt,
-                                  size: screenWidth * 0.1,
-                                  color: Color(0xFF139799),
-                                ),
-                        ),
-                      ),
-                      SizedBox(height: screenHeight * 0.015),
-                      Text(
-                        "اختر صورة شخصية",
-                        style: TextStyle(
-                          fontFamily: 'Zain',
-                          color: Colors.grey[700],
-                          fontSize: screenWidth * 0.035 * textScaleFactor,
-                        ),
-                      ),
-                      SizedBox(height: screenHeight * 0.03),
-                      CustomTextForm(
-                        hinttext: "الاسم", 
-                        myController: _firstnameController,
-                        icon: Icons.person,
-                        iconSize: screenWidth * 0.06,
-                        fontSize: screenWidth * 0.04,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      CustomTextForm(
-                        hinttext: "اللقب", 
-                        myController: _lastnameController,
-                        icon: Icons.person,
-                        iconSize: screenWidth * 0.06,
-                        fontSize: screenWidth * 0.04,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      CustomTextForm(
-                        hinttext: 'البريد الالكتروني', 
-                        myController: _emailController, 
-                        icon: Icons.email,
-                        iconSize: screenWidth * 0.06,
-                        fontSize: screenWidth * 0.04,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      CustomTextForm(
-                        hinttext: 'كلمة المرور', 
-                        myController: _passwordController, 
-                        icon: Icons.lock, 
-                        isPassword: true,
-                        iconSize: screenWidth * 0.06,
-                        fontSize: screenWidth * 0.04,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      CustomTextForm(
-                        hinttext: "رقم الهاتف",
-                        myController: _phoneController,
-                        icon: Icons.phone,
-                        iconSize: screenWidth * 0.06,
-                        fontSize: screenWidth * 0.04,
-                        keyboardType: TextInputType.phone,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      CustomTextForm(
-                        hinttext: "تاريخ الميلاد",
-                        myController: _birthDateController,
-                        icon: Icons.calendar_today,
-                        isDatePicker: true,
-                        iconSize: screenWidth * 0.06,
-                        fontSize: screenWidth * 0.04,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      CustomTextForm(
-                        hinttext: "ولاية الميلاد",
-                        myController: _birthPlaceController,
-                        icon: Icons.location_on,
-                        iconSize: screenWidth * 0.06,
-                        fontSize: screenWidth * 0.04,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      CustomTextForm(
-                        hinttext: "ولاية السكن",
-                        myController: _residenceStateController,
-                        icon: Icons.location_city,
-                        iconSize: screenWidth * 0.06,
-                        fontSize: screenWidth * 0.04,
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      CustomTextForm(
-                        hinttext: "بلدية السكن",
-                        myController: _residenceCityController,
-                        icon: Icons.home,
-                        iconSize: screenWidth * 0.06,
-                        fontSize: screenWidth * 0.04,
-                      ),
-                      SizedBox(height: screenHeight * 0.04),
-                      ElevatedButton(
-                        onPressed: () async {
-                          String email = _emailController.text.trim();
-                          String password = _passwordController.text;
-                          String firstname = _firstnameController.text.trim();
-                          String lastname = _lastnameController.text.trim();
-                          String phoneNbr = _phoneController.text.trim();
-                          String birthPlace = _birthPlaceController.text.trim();
-                          String birthDate = _birthDateController.text.trim();
-                          String residenceState = _residenceStateController.text.trim();
-                          String residenceCity = _residenceCityController.text.trim();
-                          String emailPattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$'; 
-
-                          if (email.isEmpty || 
-                              password.isEmpty || 
-                              firstname.isEmpty || 
-                              phoneNbr.isEmpty || 
-                              lastname.isEmpty || 
-                              birthDate.isEmpty || 
-                              birthPlace.isEmpty || 
-                              residenceState.isEmpty || 
-                              residenceCity.isEmpty) {
-                            showTopSnackBar("الرجاء إدخال جميع الحقول");
-                            return;
-                          }
-
-                          if (!RegExp(emailPattern).hasMatch(email)) {
-                            showTopSnackBar("الرجاء إدخال بريد إلكتروني صالح");
-                            return;
-                          }
-                    
-                          if (!RegExp(r'^\d{10}$').hasMatch(phoneNbr)) {
-                            showTopSnackBar("يجب أن يحتوي رقم الهاتف على 10 أرقام فقط");
-                            return;
-                          }
-                      
-                          try {
-                            setState(() {
-                              isLoading = true;
-                            });
-                        
-                            String? imageUrl;
-                            if (_image != null) {
-                              imageUrl = await _uploadImageToCloudinary();
-                            }
-                        
-                            final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-                              email: _emailController.text.trim(),
-                              password: _passwordController.text.trim(),
-                            );
-
-                            final User? user = credential.user;
-                            await user?.sendEmailVerification();
-
-                            if (user != null) {
-                              await addUserDetails(
-                                uid: user.uid,
-                                firstname: _firstnameController.text.trim(),
-                                lastname: _lastnameController.text.trim(),
-                                email: _emailController.text.trim(),
-                                phone: _phoneController.text.trim(),
-                                birthDate: DateTime.parse(_birthDateController.text.trim()),
-                                birthPlace: _birthPlaceController.text.trim(),
-                                residenceState: _residenceStateController.text.trim(),
-                                residenceCity: _residenceCityController.text.trim(),
-                                imageUrl: imageUrl, 
-                                role: role,
-                              );
-                            }
-
-                            setState(() {
-                              isLoading = false;
-                            });
-                        
-                            Navigator.of(context).pushReplacementNamed("Login");
-
-                          } on FirebaseAuthException catch (e) {
-                            setState(() {
-                              isLoading = false;
-                            });
-                        
-                            if (e.code == 'weak-password') {
-                              showTopSnackBar("كلمة المرور ضعيفة للغاية");
-                            } else if (e.code == 'email-already-in-use') {
-                              showTopSnackBar("الحساب موجود بالفعل لهذا البريد الإلكتروني");
-                            } else {
-                              showTopSnackBar("حدث خطأ أثناء إنشاء الحساب: ${e.message}");
-                            }
-                          } catch (e) {
-                            setState(() {
-                              isLoading = false;
-                            });
-                        
-                            showTopSnackBar("حدث خطأ غير متوقع: ${e.toString()}");
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF139799),
-                          minimumSize: Size(
-                            screenWidth * 0.9,
-                            isPortrait ? screenHeight * 0.065 : screenHeight * 0.09,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 5,
-                          shadowColor: Color(0xFF139799).withOpacity(0.3),
-                        ),
-                        child: Text(
-                          "تسجيل",
+                      SizedBox(height: 8),
+                      Text("إزالة الصورة", 
                           style: TextStyle(
                             fontFamily: 'Zain',
-                            fontSize: screenWidth * 0.04 * textScaleFactor,
-                            color: Colors.white,
+                            color: Color(0xFF139799))),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final textScaleFactor = MediaQuery.of(context).textScaleFactor;
+
+    return Scaffold(
+      body: isLoading == true 
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF139799)),
+              ),
+            ) 
+          : Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.05,
+                vertical: isPortrait ? screenHeight * 0.02 : screenHeight * 0.01,
+              ),
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: screenHeight,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(height: screenHeight * 0.02),
+                        Text(
+                          'تسجيل حساب جديد',
+                          style: TextStyle(
+                            fontFamily: 'Zain',
+                            fontSize: screenWidth * 0.045 * textScaleFactor,
                             fontWeight: FontWeight.bold,
+                            color: Color(0xFF139799),
                           ),
                         ),
-                      ),
-                      SizedBox(height: screenHeight * 0.03),
-                    ],
+                        SizedBox(height: screenHeight * 0.03),
+                        Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            GestureDetector(
+                              onTap: _showImageSourceOptions,
+                              child: Container(
+                                width: screenWidth * 0.25,
+                                height: screenWidth * 0.25,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 6,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                                  border: Border.all(
+                                    color: Color(0xFF139799).withOpacity(0.3),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: _image != null
+                                    ? ClipOval(
+                                        child: Image.file(
+                                          _image!,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.camera_alt,
+                                        size: screenWidth * 0.1,
+                                        color: Color(0xFF139799),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: screenHeight * 0.015),
+                        Text(
+                          "اختر صورة شخصية",
+                          style: TextStyle(
+                            fontFamily: 'Zain',
+                            color: Colors.grey[700],
+                            fontSize: screenWidth * 0.035 * textScaleFactor,
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.03),
+                        CustomTextForm(
+                          hinttext: "الاسم", 
+                          myController: _firstnameController,
+                          icon: Icons.person,
+                          iconSize: screenWidth * 0.06,
+                          fontSize: screenWidth * 0.04,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'الرجاء إدخال الاسم';
+                            }
+                            if (!_isValidName(value)) {
+                              return 'يجب أن يحتوي الاسم على حروف فقط';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        CustomTextForm(
+                          hinttext: "اللقب", 
+                          myController: _lastnameController,
+                          icon: Icons.person,
+                          iconSize: screenWidth * 0.06,
+                          fontSize: screenWidth * 0.04,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'الرجاء إدخال اللقب';
+                            }
+                            if (!_isValidName(value)) {
+                              return 'يجب أن يحتوي اللقب على حروف فقط';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        CustomTextForm(
+                          hinttext: 'البريد الالكتروني', 
+                          myController: _emailController, 
+                          icon: Icons.email,
+                          iconSize: screenWidth * 0.06,
+                          fontSize: screenWidth * 0.04,
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        CustomTextForm(
+                          hinttext: 'كلمة المرور', 
+                          myController: _passwordController, 
+                          icon: Icons.lock, 
+                          isPassword: true,
+                          iconSize: screenWidth * 0.06,
+                          fontSize: screenWidth * 0.04,
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        CustomTextForm(
+                          hinttext: "رقم الهاتف",
+                          myController: _phoneController,
+                          icon: Icons.phone,
+                          iconSize: screenWidth * 0.06,
+                          fontSize: screenWidth * 0.04,
+                          keyboardType: TextInputType.phone,
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        CustomTextForm(
+                          hinttext: "تاريخ الميلاد",
+                          myController: _birthDateController,
+                          icon: Icons.calendar_today,
+                          isDatePicker: true,
+                          iconSize: screenWidth * 0.06,
+                          fontSize: screenWidth * 0.04,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'الرجاء إدخال تاريخ الميلاد';
+                            }
+                            if (!_isValidBirthDate(value)) {
+                              return 'يجب أن يكون عمرك 6 سنوات على الأقل';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        CustomTextForm(
+                          hinttext: "ولاية الميلاد",
+                          myController: _birthPlaceController,
+                          icon: Icons.location_on,
+                          iconSize: screenWidth * 0.06,
+                          fontSize: screenWidth * 0.04,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'الرجاء إدخال ولاية الميلاد';
+                            }
+                            if (!_isValidLocation(value)) {
+                              return 'يجب أن تحتوي على حروف فقط';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        CustomTextForm(
+                          hinttext: "ولاية السكن",
+                          myController: _residenceStateController,
+                          icon: Icons.location_city,
+                          iconSize: screenWidth * 0.06,
+                          fontSize: screenWidth * 0.04,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'الرجاء إدخال ولاية السكن';
+                            }
+                            if (!_isValidLocation(value)) {
+                              return 'يجب أن تحتوي على حروف فقط';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
+                        CustomTextForm(
+                          hinttext: "بلدية السكن",
+                          myController: _residenceCityController,
+                          icon: Icons.home,
+                          iconSize: screenWidth * 0.06,
+                          fontSize: screenWidth * 0.04,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'الرجاء إدخال بلدية السكن';
+                            }
+                            if (!_isValidLocation(value)) {
+                              return 'يجب أن تحتوي على حروف فقط';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: screenHeight * 0.04),
+                        ElevatedButton(
+                          onPressed: () async {
+                            String email = _emailController.text.trim();
+                            String password = _passwordController.text;
+                            String firstname = _firstnameController.text.trim();
+                            String lastname = _lastnameController.text.trim();
+                            String phoneNbr = _phoneController.text.trim();
+                            String birthPlace = _birthPlaceController.text.trim();
+                            String birthDate = _birthDateController.text.trim();
+                            String residenceState = _residenceStateController.text.trim();
+                            String residenceCity = _residenceCityController.text.trim();
+                            String emailPattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$'; 
+
+                            // التحقق من صحة الحقول
+                            if (!_isValidName(firstname)) {
+                              showTopSnackBar("الرجاء إدخال اسم صحيح (حروف فقط)");
+                              return;
+                            }
+
+                            if (!_isValidName(lastname)) {
+                              showTopSnackBar("الرجاء إدخال لقب صحيح (حروف فقط)");
+                              return;
+                            }
+
+                            if (!_isValidLocation(birthPlace)) {
+                              showTopSnackBar("الرجاء إدخال ولاية ميلاد صحيحة (حروف فقط)");
+                              return;
+                            }
+
+                            if (!_isValidLocation(residenceState)) {
+                              showTopSnackBar("الرجاء إدخال ولاية سكن صحيحة (حروف فقط)");
+                              return;
+                            }
+
+                            if (!_isValidLocation(residenceCity)) {
+                              showTopSnackBar("الرجاء إدخال بلدية سكن صحيحة (حروف فقط)");
+                              return;
+                            }
+
+                            if (email.isEmpty || 
+                                password.isEmpty || 
+                                firstname.isEmpty || 
+                                phoneNbr.isEmpty || 
+                                lastname.isEmpty || 
+                                birthDate.isEmpty || 
+                                birthPlace.isEmpty || 
+                                residenceState.isEmpty || 
+                                residenceCity.isEmpty) {
+                              showTopSnackBar("الرجاء إدخال جميع الحقول");
+                              return;
+                            }
+
+                            if (!RegExp(emailPattern).hasMatch(email)) {
+                              showTopSnackBar("الرجاء إدخال بريد إلكتروني صالح");
+                              return;
+                            }
+                    
+                            if (!RegExp(r'^\d{10}$').hasMatch(phoneNbr)) {
+                              showTopSnackBar("يجب أن يحتوي رقم الهاتف على 10 أرقام فقط");
+                              return;
+                            }
+
+                            if (!_isValidBirthDate(birthDate)) {
+                              showTopSnackBar("يجب أن يكون عمرك 6 سنوات على الأقل");
+                              return;
+                            }
+                      
+                            try {
+                              setState(() {
+                                isLoading = true;
+                              });
+                        
+                              String? imageUrl;
+                              if (_image != null) {
+                                imageUrl = await _uploadImageToCloudinary();
+                              }
+                        
+                              final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                                email: _emailController.text.trim(),
+                                password: _passwordController.text.trim(),
+                              );
+
+                              final User? user = credential.user;
+                              await user?.sendEmailVerification();
+
+                              if (user != null) {
+                                await addUserDetails(
+                                  uid: user.uid,
+                                  firstname: _firstnameController.text.trim(),
+                                  lastname: _lastnameController.text.trim(),
+                                  email: _emailController.text.trim(),
+                                  phone: _phoneController.text.trim(),
+                                  birthDate: DateTime.parse(_birthDateController.text.trim()),
+                                  birthPlace: _birthPlaceController.text.trim(),
+                                  residenceState: _residenceStateController.text.trim(),
+                                  residenceCity: _residenceCityController.text.trim(),
+                                  imageUrl: imageUrl, 
+                                  role: role,
+                                );
+                              }
+
+                              setState(() {
+                                isLoading = false;
+                              });
+                        
+                              Navigator.of(context).pushReplacementNamed("Login");
+
+                            } on FirebaseAuthException catch (e) {
+                              setState(() {
+                                isLoading = false;
+                              });
+                        
+                              if (e.code == 'weak-password') {
+                                showTopSnackBar("كلمة المرور ضعيفة للغاية");
+                              } else if (e.code == 'email-already-in-use') {
+                                showTopSnackBar("الحساب موجود بالفعل لهذا البريد الإلكتروني");
+                              } else {
+                                showTopSnackBar("حدث خطأ أثناء إنشاء الحساب: ${e.message}");
+                              }
+                            } catch (e) {
+                              setState(() {
+                                isLoading = false;
+                              });
+                        
+                              showTopSnackBar("حدث خطأ غير متوقع: ${e.toString()}");
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF139799),
+                            minimumSize: Size(
+                              screenWidth * 0.9,
+                              isPortrait ? screenHeight * 0.065 : screenHeight * 0.09,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 5,
+                            shadowColor: Color(0xFF139799).withOpacity(0.3),
+                          ),
+                          child: Text(
+                            "تسجيل",
+                            style: TextStyle(
+                              fontFamily: 'Zain',
+                              fontSize: screenWidth * 0.04 * textScaleFactor,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.03),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-  );
-}
+    );
+  }
 }

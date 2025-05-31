@@ -373,7 +373,7 @@ Future<void> sendReservationExpiredNotification({
     String? bookId,
     String? userId,
   }) async {
-    const serverUrl = 'http://192.168.1.6:3000/send-single';
+    const serverUrl = 'http://192.168.1.7:3000/send-single';
 
     try {
       final response = await http.post(
@@ -651,7 +651,7 @@ Future<void> sendReturnExpiredNotification({
     required String type,
     String bookId = '',
   }) async {
-    const serverUrl = 'http://192.168.1.6:3000/send-multicast';
+    const serverUrl = 'http://192.168.1.7:3000/send-multicast';
 
     try {
       final response = await http.post(

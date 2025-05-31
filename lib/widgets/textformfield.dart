@@ -15,8 +15,10 @@ class CustomTextForm extends StatefulWidget {
   final List<String>? dropdownItems;
   final ValueChanged<String?>? onDropdownChanged;
   final int? maxLines;
-  final double? iconSize; // تمت إضافة معامل حجم الأيقونة
-  final double? fontSize; // تمت إضافة معامل حجم الخط
+  final double? iconSize;
+  final double? fontSize;
+  final String? Function(String?)? validator;
+  final VoidCallback? onTap; // أضفنا خاصية onTap هنا
 
   const CustomTextForm({
     super.key,
@@ -32,8 +34,10 @@ class CustomTextForm extends StatefulWidget {
     this.keyboardType,
     this.onDropdownChanged,
     this.maxLines = 1,
-    this.iconSize = 24, // قيمة افتراضية
-    this.fontSize = 16, // قيمة افتراضية
+    this.iconSize = 24,
+    this.fontSize = 16,
+    this.validator,
+    this.onTap, // أضفنا المعامل هنا
   });
 
   @override
@@ -81,8 +85,12 @@ class _CustomTextFormState extends State<CustomTextForm> {
             keyboardType: widget.keyboardType,
             maxLines: widget.maxLines,
             style: textStyle,
+            validator: widget.validator,
             decoration: InputDecoration(
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
               filled: true,
               fillColor: Colors.grey[200],
               focusedBorder: OutlineInputBorder(
@@ -92,6 +100,7 @@ class _CustomTextFormState extends State<CustomTextForm> {
               hintStyle: textStyle,
               prefixIcon: Icon(widget.icon, size: widget.iconSize, color: Color(0xFF139799)),
               suffixIcon: Icon(Icons.calendar_today, size: widget.iconSize, color: Colors.teal),
+              errorStyle: TextStyle(fontFamily: 'Zain'),
             ),
           ),
         ),
@@ -101,8 +110,12 @@ class _CustomTextFormState extends State<CustomTextForm> {
     if (widget.isDropdown && widget.dropdownItems != null) {
       return DropdownButtonFormField<String>(
         style: textStyle,
+        validator: widget.validator,
         decoration: InputDecoration(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
           filled: true,
           fillColor: Colors.grey[200],
           focusedBorder: OutlineInputBorder(
@@ -111,6 +124,7 @@ class _CustomTextFormState extends State<CustomTextForm> {
           hintText: widget.hinttext,
           hintStyle: textStyle,
           prefixIcon: Icon(widget.icon, size: widget.iconSize, color: Color(0xFF139799)),
+          errorStyle: TextStyle(fontFamily: 'Zain'),
         ),
         dropdownColor: Colors.grey[200],
         icon: Icon(Icons.arrow_drop_down, size: widget.iconSize),
@@ -124,41 +138,49 @@ class _CustomTextFormState extends State<CustomTextForm> {
       );
     }
 
-    return TextFormField(
-      controller: widget.myController,
-      obscureText: widget.isPassword ? !_isPasswordVisible : false,
-      maxLines: widget.maxLines,
-      style: textStyle,
-      keyboardType: widget.keyboardType,
-      decoration: InputDecoration(
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-        filled: true,
-        fillColor: Colors.grey[200],
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.teal, width: 1),
+    return GestureDetector(
+      onTap: widget.onTap, // استخدمنا onTap هنا
+      child: TextFormField(
+        controller: widget.myController,
+        obscureText: widget.isPassword ? !_isPasswordVisible : false,
+        maxLines: widget.maxLines,
+        style: textStyle,
+        keyboardType: widget.keyboardType,
+        validator: widget.validator,
+        decoration: InputDecoration(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.grey[200],
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.teal, width: 1),
+          ),
+          hintText: widget.hinttext,
+          hintStyle: textStyle,
+          prefixIcon: Icon(widget.icon, size: widget.iconSize, color: Color(0xFF139799)),
+          suffixIcon: widget.isPassword
+              ? IconButton(
+                  icon: Icon(
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.teal,
+                    size: widget.iconSize,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                )
+              : (widget.suffixIcon != null
+                  ? IconButton(
+                      icon: Icon(widget.suffixIcon, size: widget.iconSize, color: Color(0xFF139799)),
+                      onPressed: widget.onSuffixIconPressed,
+                    )
+                  : null),
+          errorStyle: TextStyle(fontFamily: 'Zain'),
         ),
-        hintText: widget.hinttext,
-        hintStyle: textStyle,
-        prefixIcon: Icon(widget.icon, size: widget.iconSize, color: Color(0xFF139799)),
-        suffixIcon: widget.isPassword
-            ? IconButton(
-                icon: Icon(
-                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                  color: Colors.teal,
-                  size: widget.iconSize,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isPasswordVisible = !_isPasswordVisible;
-                  });
-                },
-              )
-            : (widget.suffixIcon != null
-                ? IconButton(
-                    icon: Icon(widget.suffixIcon, size: widget.iconSize, color: Color(0xFF139799)),
-                    onPressed: widget.onSuffixIconPressed,
-                  )
-                : null),
       ),
     );
   }

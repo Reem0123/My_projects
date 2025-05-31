@@ -15,8 +15,7 @@ class _ShowpageState extends State<Showpage> {
   Map<String, List<QueryDocumentSnapshot>> categorizedBooks = {};
   List<String> categories = [];
   bool isLoading = true;
-  int _unreadNotificationsCount = 0;
-
+ 
   @override
   void initState() {
     super.initState();
@@ -26,6 +25,7 @@ class _ShowpageState extends State<Showpage> {
 
   void _setupUnreadNotificationsListener() {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    
     if (currentUserId == null) return;
 
     FirebaseFirestore.instance
@@ -35,8 +35,9 @@ class _ShowpageState extends State<Showpage> {
         .snapshots()
         .listen((snapshot) {
       if (mounted) {
+        
         setState(() {
-          _unreadNotificationsCount = snapshot.docs.length;
+         
         });
       }
     });

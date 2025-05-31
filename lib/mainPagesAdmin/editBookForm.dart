@@ -395,78 +395,103 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
   }
   
   void _showImageSourceOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Container(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "اختر مصدر الصورة",
-                  style: TextStyle(
-                    fontFamily: 'Zain',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+  showModalBottomSheet(
+    context: context,
+    builder: (BuildContext context) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "اختر مصدر الصورة",
+                style: TextStyle(
+                  fontFamily: 'Zain',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _captureImage();
+                    },
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Color(0xFF139799).withOpacity(0.1),
+                          child: Icon(
+                            Icons.camera_alt,
+                            size: 30,
+                            color: Color(0xFF139799),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text("الكاميرا", style: TextStyle(fontFamily: 'Zain')),
+                      ],
+                    ),
+                  ),
+                  
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _pickImage();
+                    },
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Color(0xFF139799).withOpacity(0.1),
+                          child: Icon(
+                            Icons.photo_library,
+                            size: 30,
+                            color: Color(0xFF139799),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text("المعرض", style: TextStyle(fontFamily: 'Zain')),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 15),
+              // إضافة زر إزالة الصورة إذا كانت هناك صورة حالية
+              if (_currentImageUrl != null && _currentImageUrl!.isNotEmpty || _selectedImage != null)
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _removeImage();
+                  },
+                  child: Text(
+                    "إزالة الصورة",
+                    style: TextStyle(
+                      fontFamily: 'Zain',
+                      color: Colors.red,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _captureImage();
-                      },
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Color(0xFF139799).withOpacity(0.1),
-                            child: Icon(
-                              Icons.camera_alt,
-                              size: 30,
-                              color: Color(0xFF139799),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text("الكاميرا", style: TextStyle(fontFamily: 'Zain')),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _pickImage();
-                      },
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Color(0xFF139799).withOpacity(0.1),
-                            child: Icon(
-                              Icons.photo_library,
-                              size: 30,
-                              color: Color(0xFF139799),
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text("المعرض", style: TextStyle(fontFamily: 'Zain')),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 15),
-              ],
-            ),
+            ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
+
+// دالة جديدة لإزالة الصورة
+void _removeImage() {
+  setState(() {
+    _selectedImage = null;
+    _currentImageUrl = null;
+  });
+}
 }

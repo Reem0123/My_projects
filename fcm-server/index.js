@@ -55,7 +55,7 @@ app.post('/send-single', async (req, res) => {
       });
     }
 
-    console.log(`📤 إرسال إشعار فردي إلى: ${token.substring(0, 6)}...`);
+    console.log(` إرسال إشعار فردي إلى: ${token.substring(0, 6)}...`);
 
     const message = {
       token,

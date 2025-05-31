@@ -84,78 +84,103 @@ class _MyaccountState extends State<Myaccount> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     return Scaffold(
       body: isLoading 
         ? Center(child: CircularProgressIndicator(color: Color(0xFF139799)))
-        : Column(
-          children: [
-            SizedBox(height: 40),
-            
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Color(0xFF139799).withOpacity(0.2),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: userProfileImage.isNotEmpty
-                ? ClipOval(
-                    child: Image.network(
-                      userProfileImage,
-                      fit: BoxFit.cover,
-                      width: 100,
-                      height: 100,
-                    
-                      errorBuilder: (context, error, stackTrace) {
-                        print("Error loading profile image: $error");
-                        return Center(
-                          child: Icon(Icons.person_2, size: 50, color: Color(0xFF139799)),
-                        );
-                      },
-                     
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded / 
-                                  loadingProgress.expectedTotalBytes!
-                                : null,
-                            color: Color(0xFF139799),
-                          ),
-                        );
-                      },
+        : SingleChildScrollView(
+          child: Column(
+            children: [
+              SizedBox(height: screenHeight * 0.04),
+              
+              Container(
+                width: screenWidth * 0.25,
+                height: screenWidth * 0.25,
+                decoration: BoxDecoration(
+                  color: Color(0xFF139799).withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
                     ),
-                  )
-                : Center(
-                    child: Icon(Icons.person_2, size: 50, color: Color(0xFF139799)),
+                  ],
+                ),
+                child: userProfileImage.isNotEmpty
+                  ? ClipOval(
+                      child: Image.network(
+                        userProfileImage,
+                        fit: BoxFit.cover,
+                        width: screenWidth * 0.25,
+                        height: screenWidth * 0.25,
+                      
+                        errorBuilder: (context, error, stackTrace) {
+                          print("Error loading profile image: $error");
+                          return Center(
+                            child: Icon(
+                              Icons.person_2, 
+                              size: screenWidth * 0.12, 
+                              color: Color(0xFF139799)
+                            ),
+                          );
+                        },
+                       
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded / 
+                                    loadingProgress.expectedTotalBytes!
+                                  : null,
+                              color: Color(0xFF139799),
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Center(
+                      child: Icon(
+                        Icons.person_2, 
+                        size: screenWidth * 0.12, 
+                        color: Color(0xFF139799)
+                      ),
+                    ),
+              ),
+              SizedBox(height: screenHeight * 0.01),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                child: Text(
+                  "$userName $userSurname",
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.05,
+                    fontWeight: FontWeight.bold
                   ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              "$userName $userSurname",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-            _buildOption(context, Icons.person, 'بطاقة المكتبة'),
-            _buildOption(context, Icons.edit, 'تعديل الملف الشخصي'),
-            _buildOption(context, Icons.favorite_border_sharp, 'قائمة الكتب المفضلة'),
-            _buildOption(context, Icons.history, 'سجل الاستعارةالكتب'),
-            _buildOption(context, Icons.history, 'سجل حجز الكتب'),
-            _buildOption(context, Icons.exit_to_app, 'تسجيل خروج', isLogout: true),
-          ],
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              SizedBox(height: screenHeight * 0.02),
+              _buildOption(context, Icons.person, 'بطاقة المكتبة'),
+              _buildOption(context, Icons.edit, 'تعديل الملف الشخصي'),
+              _buildOption(context, Icons.favorite_border_sharp, 'قائمة الكتب المفضلة'),
+              _buildOption(context, Icons.history, 'سجل الاستعارةالكتب'),
+              _buildOption(context, Icons.history, 'سجل حجز الكتب'),
+              _buildOption(context, Icons.exit_to_app, 'تسجيل خروج', isLogout: true),
+              SizedBox(height: screenHeight * 0.02),
+            ],
+          ),
         ),
     );
   }
 
   Widget _buildOption(BuildContext context, IconData icon, String title, {bool isLogout = false}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     return InkWell(
       onTap: () async {
         if (isLogout) {
@@ -178,7 +203,6 @@ class _MyaccountState extends State<Myaccount> {
                 ),
               );
               if (result == true) {
-    
                 setState(() {
                   isLoading = true;
                 });
@@ -195,17 +219,22 @@ class _MyaccountState extends State<Myaccount> {
               Navigator.of(context).pushNamed('ReservationHistory');
               break;
             default:
-             
               print('No route defined for $title');
           }
         }
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+        padding: EdgeInsets.symmetric(
+          horizontal: screenWidth * 0.05, 
+          vertical: screenWidth * 0.04
+        ),
+        margin: EdgeInsets.symmetric(
+          horizontal: screenWidth * 0.05, 
+          vertical: screenWidth * 0.01
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(screenWidth * 0.02),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -216,16 +245,24 @@ class _MyaccountState extends State<Myaccount> {
         ),
         child: Row(
           children: [
-            Icon(Icons.arrow_back_ios, color: Color(0xFF139799), size: 18),
+            Icon(
+              Icons.arrow_back_ios, 
+              color: Color(0xFF139799), 
+              size: screenWidth * 0.04
+            ),
             Spacer(),
             Text(
               title,
-              style: TextStyle(fontSize: 16),
+              style: TextStyle(
+                fontSize: screenWidth * 0.04,
+              ),
             ),
-            SizedBox(width: 15),
-            Icon(icon, color: Color(0xFF139799)),
-            
-            
+            SizedBox(width: screenWidth * 0.03),
+            Icon(
+              icon, 
+              color: Color(0xFF139799),
+              size: screenWidth * 0.05,
+            ),
           ],
         ),
       ),

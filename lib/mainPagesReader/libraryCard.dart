@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 
 class UserProfileCard extends StatefulWidget {
   const UserProfileCard({super.key});
@@ -18,8 +19,25 @@ class _UserProfileCardState extends State<UserProfileCard> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
     _fetchUserData();
   }
+
+
+  @override
+void dispose() {
+  
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeRight,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  super.dispose();
+}
 
   Future<void> _fetchUserData() async {
     try {
@@ -159,12 +177,34 @@ class _UserProfileCardState extends State<UserProfileCard> {
                                                   value2: userData!['birth place'] as String,
                                                 ),
                                               
-                                                _buildInlineInfoRow(
-                                                  label1: 'المدينة', 
-                                                  value1: userData!['residence city'] as String,
-                                                  label2: 'الهاتف', 
-                                                  value2: userData!['phone number'] as String,
+                                                // هذا هو الجزء المعدل لعرض العنوان
+                                                Padding(
+                                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                                  child: Row(
+                                                    children: [
+                                                      Text(
+                                                        'العنوان: ',
+                                                        style: TextStyle(
+                                                          fontSize: 16, 
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Color(0xFF139799),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                          '${userData!['residence State']} - ${userData!['residence city']}',
+                                                          style: const TextStyle(
+                                                            fontSize: 16, 
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
+                                              
+                                                // تم إزالة البريد الإلكتروني هنا وترك الهاتف فقط
+                                                _buildInfoItem('الهاتف', userData!['phone number'] as String),
                                               ],
                                             ),
                                           ),
@@ -207,18 +247,18 @@ class _UserProfileCardState extends State<UserProfileCard> {
       child: Row(
         children: [
           Expanded(
-            child: _buildInlineInfoItem(label1, value1),
+            child: _buildInfoItem(label1, value1),
           ),
           const SizedBox(width: 20), 
           Expanded(
-            child: _buildInlineInfoItem(label2, value2),
+            child: _buildInfoItem(label2, value2),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInlineInfoItem(String label, String value) {
+  Widget _buildInfoItem(String label, String value) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,

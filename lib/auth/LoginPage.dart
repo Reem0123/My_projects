@@ -19,6 +19,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   late Animation<Offset> _animation;
   bool isShowing = false;
   bool isLoading = false;
+  
+  // متغيرات إدارة المحاولات
+  int _remainingAttempts = 3;
+  DateTime? _lastFailedAttempt;
+  bool _isAccountLocked = false;
 
   @override
   void initState() {
@@ -37,6 +42,83 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _updateLoginAttempts() async {
+    final now = DateTime.now();
+    final email = _emailController.text.trim();
+    
+    // إذا كانت هناك محاولة سابقة وانقضى 30 دقيقة، نعيد تعيين العداد
+    if (_lastFailedAttempt != null && 
+        now.difference(_lastFailedAttempt!).inMinutes >= 30) {
+      setState(() {
+        _remainingAttempts = 3;
+        _isAccountLocked = false;
+      });
+      await FirebaseFirestore.instance
+          .collection('loginAttempts')
+          .doc(email)
+          .delete();
+      return;
+    }
+
+    setState(() {
+      _remainingAttempts--;
+      _lastFailedAttempt = now;
+      _isAccountLocked = _remainingAttempts <= 0;
+    });
+
+    await FirebaseFirestore.instance
+        .collection('loginAttempts')
+        .doc(email)
+        .set({
+      'attempts': 3 - _remainingAttempts,
+      'lastAttempt': _lastFailedAttempt,
+      'isLocked': _isAccountLocked,
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> _loadLoginAttempts() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('loginAttempts')
+        .doc(email)
+        .get();
+
+    final now = DateTime.now();
+    
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+      final lastAttempt = (data['lastAttempt'] as Timestamp).toDate();
+      final attempts = data['attempts'] as int;
+      final isLocked = data['isLocked'] as bool;
+      
+      // إذا انقضى 30 دقيقة منذ آخر محاولة فاشلة، نعيد تعيين العداد
+      if (now.difference(lastAttempt).inMinutes >= 30) {
+        setState(() {
+          _remainingAttempts = 3;
+          _isAccountLocked = false;
+        });
+        await FirebaseFirestore.instance
+            .collection('loginAttempts')
+            .doc(email)
+            .delete();
+      } else {
+        setState(() {
+          _remainingAttempts = 3 - attempts;
+          _lastFailedAttempt = lastAttempt;
+          _isAccountLocked = isLocked;
+        });
+      }
+    } else {
+      setState(() {
+        _remainingAttempts = 3;
+        _isAccountLocked = false;
+        _lastFailedAttempt = null;
+      });
+    }
   }
 
   void showTopSnackBar(String message) {
@@ -145,6 +227,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           hinttext: 'البريد الالكتروني',
                           myController: _emailController,
                           icon: Icons.email,
+                          onTap: () async {
+                            if (_emailController.text.isNotEmpty) {
+                              await _loadLoginAttempts();
+                            }
+                          },
                         ),
 
                         SizedBox(height: screenHeight * 0.02),
@@ -155,6 +242,26 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           icon: Icons.lock,
                           isPassword: true,
                         ),
+
+                        SizedBox(height: screenHeight * 0.02),
+                        
+                        // عرض المحاولات المتبقية أو حالة القفل
+                        if (_remainingAttempts < 3 && !_isAccountLocked)
+                          Text(
+                            "المحاولات المتبقية: $_remainingAttempts",
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: screenWidth * 0.035,
+                            ),
+                          ),
+                        if (_isAccountLocked)
+                          Text(
+                            "الحساب مؤقتاً مقفل. الرجاء المحاولة بعد ${30 - DateTime.now().difference(_lastFailedAttempt!).inMinutes} دقيقة",
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: screenWidth * 0.035,
+                            ),
+                          ),
 
                         SizedBox(height: screenHeight * 0.03),
 
@@ -178,13 +285,47 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               return;
                             }
 
+                            // تحميل محاولات الدخول السابقة
+                            await _loadLoginAttempts();
+
+                            // التحقق من حالة القفل
+                            if (_isAccountLocked) {
+                              final now = DateTime.now();
+                              final remainingTime = 30 - now.difference(_lastFailedAttempt!).inMinutes;
+                              
+                              if (remainingTime > 0) {
+                                showTopSnackBar("لقد تجاوزت عدد المحاولات المسموح بها. الرجاء الانتظار $remainingTime دقيقة");
+                                return;
+                              } else {
+                                setState(() {
+                                  _isAccountLocked = false;
+                                  _remainingAttempts = 3;
+                                });
+                                await FirebaseFirestore.instance
+                                    .collection('loginAttempts')
+                                    .doc(email)
+                                    .delete();
+                              }
+                            }
+
                             try {
                               isLoading = true;
                               setState(() {});
                               final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                                email: _emailController.text,
-                                password: _passwordController.text,
+                                email: email,
+                                password: password,
                               );
+
+                              // إعادة تعيين المحاولات عند النجاح
+                              setState(() {
+                                _remainingAttempts = 3;
+                                _isAccountLocked = false;
+                              });
+                              
+                              await FirebaseFirestore.instance
+                                  .collection('loginAttempts')
+                                  .doc(email)
+                                  .delete();
 
                               if (credential.user!.emailVerified) {
                                 DocumentSnapshot userDoc = await FirebaseFirestore.instance
@@ -221,13 +362,33 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             } on FirebaseAuthException catch (e) {
                               isLoading = false;
                               setState(() {});
-                              if (e.code == 'user-not-found') {
+                              
+                              if (e.code == 'wrong-password' || e.code == 'user-not-found') {
+                                await _updateLoginAttempts();
+                                
+                                if (_remainingAttempts > 0) {
+                                  showTopSnackBar(
+                                      "كلمة المرور خاطئة! لديك $_remainingAttempts محاولة/محاولات متبقية");
+                                } else {
+                                  showTopSnackBar(
+                                      "لقد تجاوزت عدد المحاولات المسموح بها. الرجاء المحاولة بعد 30 دقيقة");
+                                }
+                              } else if (e.code == 'user-not-found') {
+                                await _updateLoginAttempts();
                                 showTopSnackBar("لم يتم العثور على مستخدم لهذا البريد الإلكتروني");
                               } else if (e.code == 'wrong-password') {
+                                await _updateLoginAttempts();
                                 showTopSnackBar("تم إدخال كلمة مرور خاطئة لهذا المستخدم");
                               } else if (e.code == 'invalid-credential') {
+                                await _updateLoginAttempts();
                                 showTopSnackBar("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+                              } else if (e.code == 'too-many-requests') {
+                                showTopSnackBar("لقد تجاوزت عدد المحاولات المسموح بها. الرجاء المحاولة لاحقًا");
                               }
+                            } catch (e) {
+                              isLoading = false;
+                              setState(() {});
+                              showTopSnackBar("حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى");
                             }
                           },
                           style: ElevatedButton.styleFrom(
