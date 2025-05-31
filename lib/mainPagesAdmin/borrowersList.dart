@@ -944,13 +944,11 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
             child: Text('حدث خطأ: ${snapshot.error}'),
           );
         }
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(),
           );
         }
-
         final borrowers = snapshot.data?.docs ?? [];
 
         if (borrowers.isEmpty) {
@@ -975,7 +973,6 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
       },
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Directionality(

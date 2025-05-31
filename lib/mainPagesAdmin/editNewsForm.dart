@@ -378,8 +378,6 @@ class _EditNewsPageState extends State<EditNewsPage> with SingleTickerProviderSt
                 ),
               ),
               SizedBox(height: 25),
-              
-              
               CustomTextForm(
                 hinttext: "عنوان الخبر",
                 myController: _titleController,

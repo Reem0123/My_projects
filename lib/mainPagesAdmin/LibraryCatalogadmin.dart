@@ -349,10 +349,8 @@ class _LibraryCatalogadminScreenState extends State<LibraryCatalogadminScreen> {
       ),
     );
   }
-
   void _showBookOptions(BuildContext context, QueryDocumentSnapshot book) {
     final bool isHidden = book['isHidden'] ?? false;
-
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -405,7 +403,6 @@ class _LibraryCatalogadminScreenState extends State<LibraryCatalogadminScreen> {
       },
     );
   }
-
   Future<void> _hideBook(QueryDocumentSnapshot book) async {
     try {
       await FirebaseFirestore.instance
@@ -508,7 +505,6 @@ class _LibraryCatalogadminScreenState extends State<LibraryCatalogadminScreen> {
       }
     });
   }
-
   @override
   void dispose() {
     _searchController.dispose();
