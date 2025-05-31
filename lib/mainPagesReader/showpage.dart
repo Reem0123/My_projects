@@ -514,8 +514,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       var data = doc.data() as Map<String, dynamic>;
       
       reviews.add({
-        'id': doc.id, // أضف هذا السطر
-        'userId': data['userId'], // أضف هذا السطر
+        'id': doc.id, 
+        'userId': data['userId'], 
         'rating': data['rating'],
         'comment': data['comment'],
         'timestamp': data['timestamp'],
@@ -599,7 +599,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       fullName = user.email?.split('@').first ?? 'مستخدم';
     }
     
-    // التحقق من وجود حقل profile_image
+    
     String userPhotoUrl = '';
     if (userDoc.exists && userDoc.data() != null) {
       final userData = userDoc.data() as Map<String, dynamic>;
@@ -681,12 +681,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   void _showRatingDialog() {
-    // نستخدم StatefulBuilder لإدارة الحالة داخل الـ Dialog
+   
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        double tempRating = _userRating; // متغير مؤقت للتقييم
-        
+        double tempRating = _userRating; 
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setDialogState) {
             return Directionality(
@@ -711,7 +710,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                             ),
                             onPressed: () {
                               setDialogState(() {
-                                tempRating = index + 1.0; // تحديث الحالة داخل الـ Dialog
+                                tempRating = index + 1.0; 
                               });
                             },
                           );
@@ -740,7 +739,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _userRating = tempRating; // حفظ التقييم النهائي
+                        _userRating = tempRating; 
                       });
                       Navigator.of(context).pop();
                       _submitRating();
@@ -1339,7 +1338,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
   if (currentUserId == null) return;
 
-  // البحث عن تقييم المستخدم الحالي
+  
   final userReview = _reviews.firstWhere(
     (review) => review['userId'] == currentUserId,
     orElse: () => {},
@@ -1412,13 +1411,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                             'timestamp': FieldValue.serverTimestamp(),
                           });
 
-                      // تحديث الحالة المحلية
+                      
                       setState(() {
                         _userRating = tempRating;
                         _userComment = commentController.text;
                       });
 
-                      // إعادة تحميل التقييمات
+                      
                       await _loadBookReviews();
 
                       Navigator.of(context).pop();
@@ -1726,7 +1725,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       ),
       SizedBox(height: 10),
       
-      // متوسط التقييم وعدد التقييمات
+     
       Row(
         children: [
           Text(
@@ -1757,7 +1756,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
         ],
       ),
       
-      // زر إضافة/تعديل التقييم
+      
       if (_hasUserRated)
         Padding(
           padding: EdgeInsets.only(top: 10),
@@ -1790,7 +1789,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           ),
         ),
       
-      // قسم آراء القراء
+     
       SizedBox(height: 20),
       Text(
         'آراء القراء',
@@ -2137,7 +2136,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                         ],
                       ),
                     ),
-                    //rating and reviews section
+                   
                     _buildRatingSection(),
                   ],
                 ),

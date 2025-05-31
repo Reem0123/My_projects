@@ -116,7 +116,7 @@ class _AddbookformState extends State<Addbookform> with SingleTickerProviderStat
         ),
       );
       
-      //return image url
+      
       return response.secureUrl;
     } catch (e) {
       print('Error uploading image to Cloudinary: $e');
@@ -131,7 +131,7 @@ class _AddbookformState extends State<Addbookform> with SingleTickerProviderStat
   });
   
   try {
-    // get image url from cloudinary
+    
     String? imageUrl;
     if (_selectedImage != null) {
       imageUrl = await _uploadImageToCloudinary();
@@ -140,7 +140,7 @@ class _AddbookformState extends State<Addbookform> with SingleTickerProviderStat
     int copies = int.tryParse(_copiesController.text.trim()) ?? 1;
     String status = copies > 0 ? 'متاح' : 'مستعار';
     
-    // generating keywords for the search 
+   
     List<String> searchKeywords = _generateSearchKeywords(
       _titleController.text.trim(),
       _autherController.text.trim()
@@ -157,7 +157,7 @@ class _AddbookformState extends State<Addbookform> with SingleTickerProviderStat
       'availableCopies': copies,
       'createdAt': FieldValue.serverTimestamp(),
       'searchKeywords': searchKeywords,
-      'isHidden': false, // تم إضافة هذا الحقل مع قيمة افتراضية false
+      'isHidden': false,
     });
 
     if (mounted) {
@@ -194,12 +194,12 @@ List<String> _generateSearchKeywords(String title, String author) {
 
   Set<String> keywords = {};
 
-  //generate key words from the title
+  
   for (int i = 1; i <= processedTitle.length; i++) {
     keywords.add(processedTitle.substring(0, i));
   }
 
-  //generate key words from the author 
+  
   for (int i = 1; i <= processedAuthor.length; i++) {
     keywords.add(processedAuthor.substring(0, i));
   }
@@ -294,7 +294,7 @@ Widget build(BuildContext context) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Book Cover Image
+             
               Center(
                 child: GestureDetector(
                   onTap: _showImageSourceOptions,
@@ -351,7 +351,7 @@ Widget build(BuildContext context) {
               ),
               SizedBox(height: screenHeight * 0.03),
 
-              // Form Fields
+              
               CustomTextForm(
                 hinttext: "عنوان الكتاب",
                 myController: _titleController,
@@ -399,7 +399,7 @@ Widget build(BuildContext context) {
               ),
               SizedBox(height: screenHeight * 0.04),
 
-              // Submit Button
+              
               ElevatedButton(
                 onPressed: isLoading
                     ? null

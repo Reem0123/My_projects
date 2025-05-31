@@ -241,9 +241,9 @@ void _removeImage() {
     if (_selectedImage != null) {
       imageUrl = await _uploadImageToCloudinary();
     }
-    // إذا كانت الصورة قد أزيلت
+    
     else if (_currentImageUrl == null && userData['profile_image'] != null) {
-      imageUrl = ''; // إعداد قيمة فارغة لإزالة الصورة
+      imageUrl = ''; 
     }
     
     DateTime birthDate;
@@ -257,7 +257,7 @@ void _removeImage() {
       return;
     }
     
-    // تحضير بيانات التحديث
+    
     Map<String, dynamic> updateData = {
       'first name': _firstnameController.text.trim(),
       'last name': _lastnameController.text.trim(),
@@ -269,20 +269,20 @@ void _removeImage() {
       'residence city': _residenceCityController.text.trim(),
     };
     
-    // إضافة صورة الملف الشخصي فقط إذا كانت متوفرة
+   
     if (imageUrl != null) {
       updateData['profile_image'] = imageUrl;
     } else {
-      updateData['profile_image'] = ''; // أو يمكن استخدام null إذا كنت تفضل ذلك
+      updateData['profile_image'] = ''; 
     }
     
-    // تنفيذ التحديث في Firestore
+   
     await FirebaseFirestore.instance
         .collection('Users')
         .doc(widget.userId)
         .update(updateData);
     
-    // تحديث البريد الإلكتروني في Firebase Auth إذا تغير
+   
     if (currentUser.email != _emailController.text.trim()) {
       await currentUser.updateEmail(_emailController.text.trim());
     }
@@ -291,7 +291,7 @@ void _removeImage() {
       isLoading = false;
     });
     
-    // إظهار رسالة نجاح وإغلاق الصفحة
+    
     showTopSnackBar("تم تحديث الملف الشخصي بنجاح");
     Navigator.of(context).pop(true);
     
@@ -547,7 +547,7 @@ void _removeImage() {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // زر الكاميرا
+                  
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
@@ -573,7 +573,7 @@ void _removeImage() {
                     ),
                   ),
                   
-                  // زر المعرض
+               
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
@@ -602,7 +602,7 @@ void _removeImage() {
               ),
               SizedBox(height: 15),
               
-              // خيار إزالة الصورة (بنفس التصميم)
+              
               if (_currentImageUrl != null || _selectedImage != null)
                 GestureDetector(
                   onTap: () {

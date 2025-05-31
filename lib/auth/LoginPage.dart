@@ -20,7 +20,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   bool isShowing = false;
   bool isLoading = false;
   
-  // متغيرات إدارة المحاولات
+  
   int _remainingAttempts = 3;
   DateTime? _lastFailedAttempt;
   bool _isAccountLocked = false;
@@ -48,7 +48,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final now = DateTime.now();
     final email = _emailController.text.trim();
     
-    // إذا كانت هناك محاولة سابقة وانقضى 30 دقيقة، نعيد تعيين العداد
+    
     if (_lastFailedAttempt != null && 
         now.difference(_lastFailedAttempt!).inMinutes >= 30) {
       setState(() {
@@ -95,7 +95,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       final attempts = data['attempts'] as int;
       final isLocked = data['isLocked'] as bool;
       
-      // إذا انقضى 30 دقيقة منذ آخر محاولة فاشلة، نعيد تعيين العداد
+     
       if (now.difference(lastAttempt).inMinutes >= 30) {
         setState(() {
           _remainingAttempts = 3;
@@ -245,7 +245,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
                         SizedBox(height: screenHeight * 0.02),
                         
-                        // عرض المحاولات المتبقية أو حالة القفل
+                        
                         if (_remainingAttempts < 3 && !_isAccountLocked)
                           Text(
                             "المحاولات المتبقية: $_remainingAttempts",
@@ -285,10 +285,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               return;
                             }
 
-                            // تحميل محاولات الدخول السابقة
+                            
                             await _loadLoginAttempts();
 
-                            // التحقق من حالة القفل
+                           
                             if (_isAccountLocked) {
                               final now = DateTime.now();
                               final remainingTime = 30 - now.difference(_lastFailedAttempt!).inMinutes;
@@ -316,7 +316,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 password: password,
                               );
 
-                              // إعادة تعيين المحاولات عند النجاح
+                              
                               setState(() {
                                 _remainingAttempts = 3;
                                 _isAccountLocked = false;

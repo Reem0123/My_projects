@@ -18,7 +18,7 @@ class CustomTextForm extends StatefulWidget {
   final double? iconSize;
   final double? fontSize;
   final String? Function(String?)? validator;
-  final VoidCallback? onTap; // أضفنا خاصية onTap هنا
+  final VoidCallback? onTap; 
 
   const CustomTextForm({
     super.key,
@@ -37,7 +37,7 @@ class CustomTextForm extends StatefulWidget {
     this.iconSize = 24,
     this.fontSize = 16,
     this.validator,
-    this.onTap, // أضفنا المعامل هنا
+    this.onTap, 
   });
 
   @override
@@ -139,7 +139,7 @@ class _CustomTextFormState extends State<CustomTextForm> {
     }
 
     return GestureDetector(
-      onTap: widget.onTap, // استخدمنا onTap هنا
+      onTap: widget.onTap, 
       child: TextFormField(
         controller: widget.myController,
         obscureText: widget.isPassword ? !_isPasswordVisible : false,

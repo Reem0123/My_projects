@@ -26,9 +26,9 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // local notifications
+  
   await initNotifications(); 
-  // Firebase Cloud Messaging
+  
   await setupFCM(); 
   runApp(MyApp());
 }
@@ -102,16 +102,16 @@ Future<void> initNotifications() async {
 }
 
 
-// notification channel for android
+
 Future<void> createNotificationChannel() async {
-  // channel for available books
+  
   const AndroidNotificationChannel defaultChannel = AndroidNotificationChannel(
     'available_book_notifications_channel',
     'available Book Notifications',
     importance: Importance.high,
   );
 
-  // channel for new books
+  
   const AndroidNotificationChannel newBooksChannel = AndroidNotificationChannel(
     'new_books_channel',
     'New Books Notifications',
@@ -139,27 +139,27 @@ Future<void> showNotification(String title, String body) async {
   const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
 
   await flutterLocalNotificationsPlugin.show(
-    0, // notification id
-    title, // notification title
-    body, // notification content
+    0, 
+    title, 
+    body, 
     platformDetails,
   );
 }
 
-// Firebase Cloud Messaging (FCM)
+
 Future<void> setupFCM() async {
-  // listening for messages received
+  
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     print("Message received: ${message.notification?.title}");
     showNotification(message.notification?.title ?? '', message.notification?.body ?? '');
   });
 
-  // التحقق من الإشعارات عندما يفتح المستخدم التطبيق من الإشعار
+  
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     print("Message clicked!");
   });
 
-  // التحقق من الإشعارات عندما يكون التطبيق في حالة مغلقة
+  
   FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
     if (message != null) {
       print("App opened from terminated state with message: ${message.notification?.title}");

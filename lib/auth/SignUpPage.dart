@@ -116,13 +116,13 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
   }
 
   bool _isValidName(String name) {
-    // تسمح بالحروف العربية والفرنسية والإنجليزية والفراغات
+    
     final nameRegExp = RegExp(r'^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FFa-zA-Z\s]+$');
     return nameRegExp.hasMatch(name);
   }
 
   bool _isValidLocation(String location) {
-    // تسمح بالحروف العربية والفرنسية والإنجليزية والفراغات
+    
     final locationRegExp = RegExp(r'^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FFa-zA-Z\s]+$');
     return locationRegExp.hasMatch(location);
   }
@@ -237,7 +237,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // زر الكاميرا
+                 
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
@@ -263,7 +263,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                     ),
                   ),
                   
-                  // زر المعرض
+                  
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
@@ -292,7 +292,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
               ),
               SizedBox(height: 15),
               
-              // خيار إزالة الصورة (بنفس التصميم)
+             
               if (_image != null)
                 GestureDetector(
                   onTap: () {
@@ -560,7 +560,7 @@ class _SignUpPageState extends State<SignUpPage> with SingleTickerProviderStateM
                             String residenceCity = _residenceCityController.text.trim();
                             String emailPattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$'; 
 
-                            // التحقق من صحة الحقول
+                            
                             if (!_isValidName(firstname)) {
                               showTopSnackBar("الرجاء إدخال اسم صحيح (حروف فقط)");
                               return;

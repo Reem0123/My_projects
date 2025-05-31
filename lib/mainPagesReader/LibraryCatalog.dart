@@ -33,7 +33,7 @@ class _LibraryCatalogScreenState extends State<LibraryCatalogScreen> {
     try {
       QuerySnapshot booksSnapshot = await FirebaseFirestore.instance
           .collection('Books')
-          .where('isHidden', isEqualTo: false) // عرض الكتب غير المخفية فقط
+          .where('isHidden', isEqualTo: false) 
           .orderBy('createdAt', descending: true)
           .get();
 

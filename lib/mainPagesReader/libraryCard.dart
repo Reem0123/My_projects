@@ -177,7 +177,7 @@ void dispose() {
                                                   value2: userData!['birth place'] as String,
                                                 ),
                                               
-                                                // هذا هو الجزء المعدل لعرض العنوان
+                                                
                                                 Padding(
                                                   padding: const EdgeInsets.symmetric(vertical: 10),
                                                   child: Row(
@@ -203,7 +203,7 @@ void dispose() {
                                                   ),
                                                 ),
                                               
-                                                // تم إزالة البريد الإلكتروني هنا وترك الهاتف فقط
+                                                
                                                 _buildInfoItem('الهاتف', userData!['phone number'] as String),
                                               ],
                                             ),

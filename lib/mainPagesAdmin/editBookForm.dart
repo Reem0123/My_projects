@@ -168,7 +168,7 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
         'description': _descriptionController.text.trim(),
         'ImageUrl': imageUrl ?? '',
         'copies': copies,
-        'availableCopies': copies, // يمكنك تعديل هذا حسب احتياجاتك
+        'availableCopies': copies, 
         'status': status,
       });
       
@@ -463,7 +463,7 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
                 ],
               ),
               SizedBox(height: 15),
-              // إضافة زر إزالة الصورة إذا كانت هناك صورة حالية
+             
               if (_currentImageUrl != null && _currentImageUrl!.isNotEmpty || _selectedImage != null)
                 TextButton(
                   onPressed: () {
@@ -487,7 +487,7 @@ class _EditBookFormState extends State<EditBookForm> with SingleTickerProviderSt
   );
 }
 
-// دالة جديدة لإزالة الصورة
+
 void _removeImage() {
   setState(() {
     _selectedImage = null;

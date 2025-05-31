@@ -83,7 +83,7 @@ class _MyaccountadminState extends State<Myaccountadmin> {
               children: [
                 SizedBox(height: screenHeight * 0.04),
                 
-                // صورة الملف الشخصي
+               
                 Container(
                   width: screenWidth * 0.25,
                   height: screenWidth * 0.25,
@@ -139,7 +139,7 @@ class _MyaccountadminState extends State<Myaccountadmin> {
                 
                 SizedBox(height: screenHeight * 0.02),
                 
-                // اسم المستخدم
+                
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
                   child: Text(
@@ -156,7 +156,7 @@ class _MyaccountadminState extends State<Myaccountadmin> {
                 
                 SizedBox(height: screenHeight * 0.03),
                 
-                // خيارات القائمة
+               
                 _buildOption(context, Icons.person, 'بطاقة المكتبة'),
                 _buildOption(context, Icons.manage_accounts, 'إدارة حسابات المستخدمين'),
                 _buildOption(context, Icons.edit, 'تعديل الملف الشخصي'),

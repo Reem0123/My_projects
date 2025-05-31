@@ -66,7 +66,7 @@ void _showEditDeleteOptions(String docId, Map<String, dynamic> newsData) {
   );
 }
 
-// دالة الانتقال إلى صفحة التعديل
+
 void _navigateToEditPage(String docId, Map<String, dynamic> newsData) {
   Navigator.push(
     context,

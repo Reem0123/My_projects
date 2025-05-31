@@ -74,7 +74,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
       for (final request in activeRequests.docs) {
         final returnDate = (request['returnDate'] as Timestamp).toDate();
         if (returnDate.isBefore(now) ){
-          // إرسال إشعار انتهاء المدة فقط إذا لم يتم إرساله من قبل
+          
           if (!request['overdueNotificationSent']) {
             await _sendOverdueNotification(request);
           }
@@ -83,7 +83,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
     });
   }
 
-  // دالة جديدة لإرسال إشعار التأخير
+  
   Future<void> _sendOverdueNotification(QueryDocumentSnapshot request) async {
     try {
       final userId = request['userId'];
@@ -100,14 +100,14 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
           bookTitle: widget.bookTitle,
         );
 
-        // تحديث حالة الطلب لتجنب إرسال الإشعار مرة أخرى
+       
         await request.reference.update({
           'overdueNotificationSent': true,
           'isOverdue': true,
         });
       }
     } catch (e) {
-      print('❌ فشل في إرسال إشعار التأخير: $e');
+      print(' فشل في إرسال إشعار التأخير: $e');
     }
   }
 
@@ -145,7 +145,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
         );
       }
     } catch (e) {
-      print('❌ فشل تأكيد الاستلام: $e');
+      print(' فشل تأكيد الاستلام: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('فشل التأكيد: ${e.toString()}'))
@@ -156,7 +156,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
 
   Future<void> _rejectBookReceiving(BuildContext context, String userId, String requestId) async {
     try {
-      // تحقق أولاً من أن الطلب لا يزال في حالة pending
+      
       final requestDoc = await FirebaseFirestore.instance
           .collection('BorrowRequestsList')
           .doc(requestId)
@@ -166,14 +166,14 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
         throw Exception('حالة الطلب غير صالحة للتحديث أو تم تحديثها مسبقاً');
       }
 
-      // تحديث حالة الطلب
+     
       await requestDoc.reference.update({
         'status': 'pending',
         'receivingExpired': true,
         'expiredAt': FieldValue.serverTimestamp(),
       });
 
-      // إرسال إشعار للمستخدم
+      
       final userDoc = await FirebaseFirestore.instance
           .collection('Users')
           .doc(userId)
@@ -188,7 +188,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
         );
       }
 
-      // تحرير الكتاب للمستخدم التالي
+     
       await _checkNextWaitingUser(widget.bookId);
 
       if (context.mounted) {
@@ -197,7 +197,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
         );
       }
     } catch (e) {
-      print('❌ فشل رفض الاستلام: $e');
+      print(' فشل رفض الاستلام: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('فشل في رفض الاستلام: ${e.toString()}'))
@@ -234,14 +234,14 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
 
   Future<void> _checkNextWaitingUser(String bookId) async {
     try {
-      print('🔍 بدء البحث عن المستخدم التالي في قائمة الانتظار...');
+      print(' بدء البحث عن المستخدم التالي في قائمة الانتظار...');
       
-      // 1. جلب أول مستخدم في قائمة الانتظار لهذا الكتاب بحالة waiting
+      
       final nextUserQuery = await FirebaseFirestore.instance
           .collection('WaitingList')
           .where('bookId', isEqualTo: bookId)
           .where('status', isEqualTo: 'waiting')
-          .orderBy('requestDate', descending: false) // الأقدم أولاً
+          .orderBy('requestDate', descending: false) 
           .limit(1)
           .get();
 
@@ -250,7 +250,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
         final nextUserId = nextUserDoc['userId'];
         final nextRequestId = nextUserDoc.id;
         
-        // جلب token المستخدم من collection Users
+       
         final userDoc = await FirebaseFirestore.instance
             .collection('Users')
             .doc(nextUserId)
@@ -260,7 +260,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
 
         print('👤 تم العثور على المستخدم التالي: $nextUserId');
 
-        // 2. تحديث حالة المستخدم إلى "notified"
+       
         await nextUserDoc.reference.update({
           'status': 'notified',
           'notificationTime': DateTime.now(),
@@ -268,7 +268,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
           'notified': true,
         });
 
-        // 3. إرسال إشعار توفر الكتاب للمستخدم التالي
+        
         if (nextUserToken.isNotEmpty) {
           await FirebaseApi().sendBookAvailableNotification(
             userToken: nextUserToken,
@@ -278,12 +278,12 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
           print(' تم إرسال إشعار للمستخدم التالي');
         }
 
-        // 4. جدولة التحقق من انتهاء مهلة هذا المستخدم
+       
         _scheduleReservationCheck(bookId, nextRequestId, nextUserId);
       } else {
-        print('ℹ️ لا يوجد مستخدمين في قائمة الانتظار، جاري تحرير الكتاب...');
+        print(' لا يوجد مستخدمين في قائمة الانتظار، جاري تحرير الكتاب...');
         
-        // 5. إذا لم يوجد مستخدمين في الانتظار، زيادة النسخ المتاحة
+       
         await FirebaseFirestore.instance.runTransaction((transaction) async {
           final bookDoc = await transaction.get(
             FirebaseFirestore.instance.collection('Books').doc(bookId)
@@ -299,12 +299,12 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
               'status': newAvailableCopies > 0 ? 'متاح' : 'غير متاح',
             });
             
-            print('📚 تم تحديث النسخ المتاحة إلى: $newAvailableCopies');
+            print(' تم تحديث النسخ المتاحة إلى: $newAvailableCopies');
           }
         });
       }
     } catch (e) {
-      print('❌ خطأ في _checkNextWaitingUser: $e');
+      print(' خطأ في _checkNextWaitingUser: $e');
       
     }
   }
@@ -313,7 +313,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
     try {
       final firebaseApi = FirebaseApi();
       
-      // 1. جلب بيانات المستخدم والكتاب
+      
       final userDoc = await FirebaseFirestore.instance.collection('Users').doc(userId).get();
       final bookDoc = await FirebaseFirestore.instance.collection('Books').doc(bookId).get();
       
@@ -324,7 +324,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
       final userToken = userDoc['fcmToken'] as String? ?? '';
       final bookTitle = bookDoc['BookTitle'] as String? ?? '';
 
-      // 2. جدولة التحقق من انتهاء المهلة
+      
       Timer(Duration(hours: 24), () async {
         final requestDoc = await FirebaseFirestore.instance
             .collection('WaitingList')
@@ -333,13 +333,13 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
 
         if (requestDoc.exists && requestDoc['status'] == 'notified') {
           try {
-            // 3. تحديث الحالة إلى منتهية
+            
             await requestDoc.reference.update({
               'status': 'expired',
               'expiredAt': DateTime.now(),
             });
 
-            // 4. إرسال إشعار انتهاء المهلة
+            
             if (userToken.isNotEmpty) {
               await firebaseApi.sendReservationExpiredNotification(
                 userToken: userToken,
@@ -349,15 +349,15 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
               );
             }
 
-            // 5. تحرير الكتاب للمستخدم التالي
+            
             await _checkNextWaitingUser(bookId);
           } catch (e) {
-            print('❌ خطأ في تحديث حالة انتهاء المهلة: $e');
+            print(' خطأ في تحديث حالة انتهاء المهلة: $e');
           }
         }
       });
     } catch (e) {
-      print('❌ خطأ في جدولة التحقق من انتهاء المهلة: $e');
+      print(' خطأ في جدولة التحقق من انتهاء المهلة: $e');
     }
   }
 
@@ -441,7 +441,7 @@ class _BorrowersListScreenState extends State<BorrowersListScreen> with TickerPr
       ? (data['expiredAt'] as Timestamp).toDate().toString().split(' ')[0]
       : null;
 
-  // حساب مدة التأخير إذا كان الكتاب قد تم إرجاعه متأخراً
+  
   Duration? lateDuration;
   if (isReturned && returnDate != null && returnedDate != null && returnedDate.isAfter(returnDate)) {
     lateDuration = returnedDate.difference(returnDate);
