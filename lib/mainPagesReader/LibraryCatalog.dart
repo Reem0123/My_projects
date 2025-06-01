@@ -22,6 +22,8 @@ class _LibraryCatalogScreenState extends State<LibraryCatalogScreen> {
   Timer? _searchTimer;
   bool _isSearching = false;
 
+
+
   @override
   void initState() {
     super.initState();
@@ -100,7 +102,6 @@ class _LibraryCatalogScreenState extends State<LibraryCatalogScreen> {
       ),
     );
   }
-
   void _clearSearch() {
     _searchController.clear();
     setState(() {
@@ -216,7 +217,6 @@ class _LibraryCatalogScreenState extends State<LibraryCatalogScreen> {
       ),
     );
   }
-
   Widget _buildBooksList(List<QueryDocumentSnapshot> books) {
     if (isLoading) {
       return Center(child: CircularProgressIndicator());
