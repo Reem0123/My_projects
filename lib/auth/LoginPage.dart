@@ -49,8 +49,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final email = _emailController.text.trim();
     
     
-    if (_lastFailedAttempt != null && 
-        now.difference(_lastFailedAttempt!).inMinutes >= 30) {
+    if (_lastFailedAttempt != null && now.difference(_lastFailedAttempt!).inMinutes >= 30) {
       setState(() {
         _remainingAttempts = 3;
         _isAccountLocked = false;

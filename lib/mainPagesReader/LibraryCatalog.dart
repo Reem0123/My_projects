@@ -347,7 +347,6 @@ class _LibraryCatalogScreenState extends State<LibraryCatalogScreen> {
       }
     });
   }
-
   @override
   void dispose() {
     _searchController.dispose();

@@ -9,7 +9,6 @@ import 'package:libyyapp/mainPagesAdmin/waitingList.dart';
 
 class Showpageadmin extends StatefulWidget {
   const Showpageadmin({super.key});
-
   @override
   State<Showpageadmin> createState() => _ShowpageadminState();
 }
@@ -35,7 +34,7 @@ class _ShowpageadminState extends State<Showpageadmin> {
 
        print("عدد الكتب الجديدة: ${querySnapshot.docs.length}");
 
-    // طباعة عناوين الكتب للتأكد من وجودها
+
     for (var doc in querySnapshot.docs) {
       print("عنوان الكتاب: ${doc['BookTitle']}, isHidden: ${doc['isHidden']}");
     }
